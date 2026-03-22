@@ -912,16 +912,25 @@ Question: ${question}`;
       });
 
       const results = await Promise.all(ragPromises);
+
+      const hasRef = s => /gadhada|sarangpur|vachanamrut|maharaj says/i.test(s);
+
+      // Priority 1: first answer with a real Vachanamrut reference
+      let winner = null;
       for (const d of results) {
         const candidate = d?.data?.answer || d?.response?.answer || '';
-        if (candidate && !candidate.toLowerCase().includes('not directly mentioned')) {
-          ans = candidate;
-          coins = (coins || 0) + (d?.data?.coins_used || 0);
-          break;
+        if (candidate && hasRef(candidate)) { winner = { ans: candidate, coins: d?.data?.coins_used || 0 }; break; }
+      }
+      // Priority 2: first non-empty answer (even if no reference found)
+      if (!winner) {
+        for (const d of results) {
+          const candidate = d?.data?.answer || d?.response?.answer || '';
+          if (candidate) { winner = { ans: candidate, coins: d?.data?.coins_used || 0 }; break; }
         }
       }
-      if (!ans) ans = results[0]?.data?.answer || 'This is not directly mentioned in the provided Vachanamrut. Jai Swaminarayan 🙏';
-      coins = results.reduce((sum, d) => sum + (d?.data?.coins_used || 0), 0);
+
+      ans   = winner?.ans   || 'This is not directly mentioned in the provided Vachanamrut. Jai Swaminarayan 🙏';
+      coins = winner?.coins || 0;
 
     } else {
       // Standard prompt completion fallback (no RAG)
