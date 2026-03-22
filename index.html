@@ -729,39 +729,39 @@ document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') 
 ═══════════════════════════════════════════════════════════════ */
 
 // Recent questions
-function loadRecent(q) {
-  document.getElementById('q').value = q;
-
-  // Try direct cache lookup
-  const normalizedKey = cKey(q);
-  const cached = cache[normalizedKey];
-
-  console.log('loadRecent lookup:', normalizedKey, 'found:', !!cached);
-  console.log('All cache keys:', Object.keys(cache));
-
-  if (cached) {
-    showAns(cached, true, 0);
+function loadRecent(item) {
+  document.getElementById('q').value = item.q;
+  if (item.a) {
+    showAns(item.a, true, 0);
+    setTimeout(() => {
+      document.getElementById('ansCard').scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
   }
-  document.getElementById('q').scrollIntoView({behavior: 'smooth'});
 }
 
-function saveRecentQuestion(q) {
+function saveRecentQuestion(q, a) {
   let recent = JSON.parse(localStorage.getItem('amRecent') || '[]');
-  recent = [q, ...recent.filter(r => r !== q)].slice(0, 3);
+  recent = recent.map(r => typeof r === 'string' ? { q: r, a: '' } : r);
+  recent = [{ q, a }, ...recent.filter(r => r.q !== q)].slice(0, 3);
   localStorage.setItem('amRecent', JSON.stringify(recent));
   renderRecentQuestions();
 }
 function renderRecentQuestions() {
-  const recent = JSON.parse(localStorage.getItem('amRecent') || '[]');
+  const recent = JSON.parse(localStorage.getItem('amRecent') || '[]').map(r =>
+    typeof r === 'string' ? { q: r, a: '' } : r
+  );
   const wrap = document.getElementById('recentWrap');
   const list = document.getElementById('recentList');
   if (!wrap || !list) return;
   if (!recent.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
-  list.innerHTML = recent.map(q =>
-    `<button type="button" onclick="loadRecent(${JSON.stringify(q)})"
+  list.innerHTML = recent.map(item =>
+    `<button type="button" onclick='loadRecent(${JSON.stringify(item)})'
       style="text-align:left;font-size:12px;font-style:italic;color:rgba(232,220,200,.55);cursor:pointer;background:none;border:none;padding:2px 4px;width:100%;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .18s;font-family:'Crimson Pro',serif"
-      onmouseover="this.style.color='#f5a623'" onmouseout="this.style.color='rgba(232,220,200,.55)'">↩ ${q.slice(0,65)}${q.length>65?'…':''}</button>`
+      onmouseover="this.style.color='#f5a623'" onmouseout="this.style.color='rgba(232,220,200,.55)'">↩ ${item.q.slice(0,65)}${item.q.length>65?'…':''}</button>`
   ).join('');
 }
 renderRecentQuestions();
@@ -772,7 +772,7 @@ showAns = function(text, cached, coins) {
   const question = document.getElementById('q').value.trim();
   const qEcho = document.getElementById('qEcho');
   if (qEcho) qEcho.textContent = question;
-  if (question && !cached) saveRecentQuestion(question);
+  if (question && !cached) saveRecentQuestion(question, text);
   _origShowAns.call(this, text, cached, coins);
 };
 
