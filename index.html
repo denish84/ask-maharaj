@@ -731,11 +731,18 @@ document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') 
 // Recent questions
 function loadRecent(q) {
   document.getElementById('q').value = q;
-  const cached = cache[cKey(q)];
+
+  // Try direct cache lookup
+  const normalizedKey = cKey(q);
+  const cached = cache[normalizedKey];
+
+  console.log('loadRecent lookup:', normalizedKey, 'found:', !!cached);
+  console.log('All cache keys:', Object.keys(cache));
+
   if (cached) {
     showAns(cached, true, 0);
-    document.getElementById('q').scrollIntoView();
   }
+  document.getElementById('q').scrollIntoView({behavior: 'smooth'});
 }
 
 function saveRecentQuestion(q) {
