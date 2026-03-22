@@ -911,10 +911,16 @@ Question: ${question}`;
         throw new Error(e.message || e.error || 'RAG API error ' + res.status + '. Check your key and RAG ID.');
       }
 
-      const data = await res.json();
-      console.log('Straico RAG response:', JSON.stringify(data));
-      ans    = data?.data?.answer || data?.data?.completion || data?.answer || '';
-      coins  = data?.data?.price?.total || data?.data?.coins || 0;
+      const d = await res.json();
+      console.log('RAG response:', JSON.stringify(d));
+      ans =
+        d?.data?.answer ||
+        d?.data?.completion ||
+        d?.answer ||
+        d?.completion ||
+        d?.data?.completions?.[model]?.completion?.choices?.[0]?.message?.content ||
+        '';
+      coins  = d?.data?.price?.total || d?.data?.coins || 0;
 
     } else {
       // Standard prompt completion fallback (no RAG)
