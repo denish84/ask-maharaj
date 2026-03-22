@@ -193,7 +193,6 @@ tailwind.config = {
 
   /* ── Safe area ── */
   .pt-safe { padding-top: env(safe-area-inset-top, 0); }
-  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0) + 24px, 40px); }
 
   /* ── Reduced motion ── */
   @media (prefers-reduced-motion: reduce) {
@@ -256,7 +255,7 @@ tailwind.config = {
 <!-- ══════════════════════════════════
      MAIN CONTENT
 ════════════════════════════════════ -->
-<div class="relative z-10 max-w-[480px] mx-auto px-6 pt-safe pb-safe">
+<div class="relative z-10 max-w-[480px] mx-auto px-5 pt-safe" style="padding-bottom:max(env(safe-area-inset-bottom,0) + 16px, 24px)">
 
   <!-- ── Top bar: Stats + Settings gear ── -->
   <div class="flex justify-between items-center py-4" style="animation:fadeDown .7s ease both">
@@ -269,11 +268,6 @@ tailwind.config = {
       <div class="text-center">
         <span class="block text-[1.25rem] font-semibold text-[#f5a623] leading-none font-gujarati" id="sC">0</span>
         <span class="block text-[10px] uppercase tracking-widest text-[#e8dcc8] opacity-45 mt-0.5">Cached</span>
-      </div>
-      <div class="w-px self-stretch my-1" style="background:linear-gradient(to bottom,transparent,rgba(232,131,42,.32),transparent)"></div>
-      <div class="text-center">
-        <span class="block text-[1.25rem] font-semibold text-[#f5a623] leading-none font-gujarati" id="sCo">0</span>
-        <span class="block text-[10px] uppercase tracking-widest text-[#e8dcc8] opacity-45 mt-0.5">Coins</span>
       </div>
     </div>
     <button type="button" onclick="openSettings()"
@@ -327,13 +321,13 @@ tailwind.config = {
            style="color:rgba(232,131,42,.8)">🙏 Your Question</label>
 
     <textarea id="q" rows="4"
-      placeholder="What does Maharaj say about controlling the mind?&#10;&#10;Or in Gujarati: મહારાજ મન વિષે શું કહે છે?"></textarea>
+      placeholder="Maharaj ne prashn pucho... 🙏"></textarea>
 
     <!-- Question chips -->
     <div class="flex flex-wrap gap-2 mt-3">
       <button type="button" class="chip" onclick="setQ('મનની શાંતિ કેવી રીતે મેળવવી?')">મનની શાંતિ</button>
       <button type="button" class="chip" onclick="setQ('How to control anger according to Maharaj?')">Anger control</button>
-      <button type="button" class="chip" onclick="setQ('Ekadashi nu mahatva shu che?')">Ekadashi mahatva</button>
+      <button type="button" class="chip" onclick="setQ('Ekadashi nu mahatva shu che?')">એકાદશી નું મહત્વ</button>
       <button type="button" class="chip" onclick="setQ('What is Maya according to Vachanamrut?')">What is Maya?</button>
     </div>
 
@@ -398,7 +392,7 @@ tailwind.config = {
   </div>
 
   <!-- ── Footer ── -->
-  <footer class="text-center pt-4 pb-2" style="animation:fadeIn 1s ease .3s both">
+  <footer class="text-center pt-4 pb-1" style="animation:fadeIn 1s ease .3s both">
     <p class="font-gujarati font-semibold text-[1.1rem] tracking-[.04em]" style="color:rgba(253,246,236,.85)">Jai Swaminarayan 🙏</p>
     <p class="text-[.7rem] italic mt-1.5" style="color:rgba(232,220,200,.32)">Built with love for the Satsang community · Surat</p>
   </footer>
