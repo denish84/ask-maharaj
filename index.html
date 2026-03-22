@@ -290,7 +290,7 @@ tailwind.config = {
        radial-gradient(ellipse 120% 55% at 50% -8%, rgba(232,131,42,.13) 0%, transparent 55%),
        radial-gradient(ellipse 65% 50% at 100% 100%, rgba(184,90,18,.1) 0%, transparent 50%),
        radial-gradient(ellipse at center, transparent 10%, rgba(15,6,0,.82) 100%)">
-</div>
+      </div>
 
 <!-- ══════════════════════════════════
      MAIN CONTENT
@@ -306,15 +306,22 @@ tailwind.config = {
       <span class="relative leading-none block" style="font-size:3.5rem;animation:glowPulse 3.2s ease-in-out infinite">🕉</span>
     </div>
 
-    <svg width="32" height="40" viewBox="0 0 32 40"
-      fill="none" xmlns="http://www.w3.org/2000/svg"
-      style="opacity:0.85; margin: 4px auto; display:block;">
-      <!-- U shape tilak -->
-      <path d="M6 38 C6 20 4 4 16 4 C28 4 26 20 26 38"
-        stroke="#fdf6ec" stroke-width="3.5"
-        fill="none" stroke-linecap="round"/>
-      <!-- Chandlo - red dot -->
-      <circle cx="16" cy="18" r="4" fill="#cc2200"/>
+    <svg width="44" height="56" viewBox="0 0 44 56" fill="none" xmlns="http://www.w3.org/2000/svg"
+         style="margin:8px auto;display:block;filter:drop-shadow(0 0 8px rgba(232,131,42,0.5))"
+         aria-hidden="true">
+      <!-- Left arm of U -->
+      <path d="M8 4 L8 34 Q8 52 22 52 Q36 52 36 34 L36 4"
+            stroke="#fdf6ec" stroke-width="5" fill="none"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Inner highlight of U for depth -->
+      <path d="M13 4 L13 34 Q13 46 22 46 Q31 46 31 34 L31 4"
+            stroke="rgba(253,246,236,0.3)" stroke-width="2" fill="none"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Red chandlo -->
+      <circle cx="22" cy="26" r="6" fill="#cc2200"/>
+      <circle cx="22" cy="26" r="3.5" fill="#ff4422"/>
+      <!-- Chandlo highlight -->
+      <circle cx="20" cy="24" r="1.2" fill="rgba(255,180,160,0.6)"/>
     </svg>
 
     <h1 class="gold-text font-gujarati font-bold tracking-[.02em] mb-4"
@@ -356,7 +363,7 @@ tailwind.config = {
       <button type="button" class="chip" onclick="setQ('How to control anger according to Maharaj?')">Anger control</button>
       <button type="button" class="chip" onclick="setQ('What is the importance of Ekadashi?')">Ekadashi mahatva</button>
       <button type="button" class="chip" onclick="setQ('What is Maya according to Vachanamrut?')">What is Maya?</button>
-    </div>
+  </div>
 
     <!-- Recent questions -->
     <div id="recentWrap" class="mt-6 pt-5" style="display:none;border-top:1px solid rgba(232,131,42,.12)">
@@ -366,7 +373,7 @@ tailwind.config = {
 
     <!-- Ask button -->
     <button type="button" id="askBtn" onclick="ask()">🙏 &nbsp;Maharaj ne Pucho</button>
-  </div>
+    </div>
 
   <!-- ── Error box ── -->
   <div id="errBox" class="mb-8 px-5 py-5 rounded-2xl text-[15px] leading-relaxed"
@@ -389,7 +396,7 @@ tailwind.config = {
               style="color:rgba(245,166,35,.95)">Maharaj Kahe Chhe</span>
         <span id="cTag" class="ml-auto"
               style="display:none;font-size:16px;opacity:0.6;filter:drop-shadow(0 0 4px rgba(232,131,42,0.5))">🕉</span>
-      </div>
+  </div>
 
       <!-- Scripture scroll body -->
       <div id="answerScroll" class="relative px-4 pt-5 pb-8 rounded-xl"
@@ -402,7 +409,7 @@ tailwind.config = {
         </p>
         <span class="absolute left-1/2 bottom-2 leading-none"
               aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);transform:translateX(-50%) scaleX(-1);display:block;z-index:0">❧</span>
-      </div>
+  </div>
 
       <!-- Footer row -->
       <div class="flex justify-center items-center flex-wrap gap-3 mt-5 pt-4"
