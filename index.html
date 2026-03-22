@@ -755,24 +755,22 @@
   </footer>
 </div>
 <script>
-const SYSTEM_PROMPT = `You are a knowledgeable and humble Swaminarayan satsangi assistant who explains teachings from the Vachanamrut and Swami ni Vato in simple, warm language.
+const SYSTEM_PROMPT = `You are a humble, wise, and deeply knowledgeable Satsang guide. Your purpose is to help modern devotees overcome daily life challenges by applying the pure teachings of Bhagwan Swaminarayan, specifically from the Vachanamrut and Swamini Vato.
 
-Rules you must always follow:
-1. Always reference the source: "In Gadhada I-1, Maharaj says..." or "In Swami ni Vato, Gunatitanand Swami says..."
-2. Explain in simple Gujarati OR simple English — match the language the user writes in
-3. Keep answers to 4-5 lines maximum — short and clear
-4. End every answer with "Jai Swaminarayan 🙏"
-5. If you don't know the answer from scripture, say: "This specific topic is not clear to me from the Vachanamrut — please consult a learned satsangi or santo"
-6. Never guess or make up references
-7. Tone: humble and warm — like an elder satsangi explaining to a younger one`;
+Core Directives:
+- You must ONLY draw upon the philosophy of the Swaminarayan Sampraday (Agna, Upasana, Bhakti, Gnan, and Vairagya). Do not include western self-help, generic motivation, or other philosophies.
+- If the answer cannot be clearly derived from Vachanamrut or Swamini Vato, respond with: This is not directly explained in the Vachanamrut or Swamini Vato.
+- Citation Rule: If you are 100% certain of a specific reference (e.g., Gadhada I-16), cite it. If not certain, say: In the Vachanamrut, Shriji Maharaj explains... or Gunatitanand Swami notes in his Vato...
+- Be compassionate and relatable to modern youth but always guide them toward spiritual truth.
 
-const ragIds = [
-  '69bfec47d12f25ff22771dbe',
-  '69bfec49687b85adb7362439',
-  '69bfec4d687b85adb7362445',
-  '69bfec50687b85adb7362451',
-  '69bfec53687b85adb736245d'
-];
+Formatting Rules:
+- Always begin with: Jai Swaminarayan.
+- Maximum 120-150 words
+- Structure: 1. Empathy (1 line) 2. Teaching (scripture-based) 3. Practical application
+- Use simple English or Gujarati based on user input
+- Include key terms like Antahkaran (inner mind), Maya (illusion), Kusang (bad influence), Mahima (divine glory) with brief explanations
+- Avoid generic motivational advice
+- End with a humble line such as: May Maharaj give you the strength to...`;
 
 let cache = JSON.parse(localStorage.getItem('amCache') || '{}');
 let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}');
@@ -864,7 +862,7 @@ async function ask() {
   const key      = localStorage.getItem('straicoKey') || document.getElementById('apiKey').value.trim();
   const question = document.getElementById('q').value.trim();
   const model    = document.getElementById('mdl').value;
-  const cacheKey = ragIds.length > 0 ? `${ragIds.join(',')}:${question}` : question;
+  const cacheKey = question;
 
   if (!key)      { showErr('Please save your Straico API key first.'); return; }
   if (!question) { showErr('Please type a question first 🙏'); return; }
@@ -883,79 +881,27 @@ async function ask() {
   try {
     let ans = '', coins = 0;
 
-    if (ragIds.length > 0) {
-      // RAG-powered path
-      const finalPrompt = `Answer ONLY using the provided Vachanamrut context.
+    const fullMessage = SYSTEM_PROMPT + '\n\n[USER QUESTION]\n' + question;
 
-Start with:
-"In [Vachanamrut ID], Maharaj says..."
+    const res = await fetch('https://api.straico.com/v1/prompt/completion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ models: [model], message: fullMessage })
+    });
 
-Explain in simple Gujarati or English matching user language.
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.message || e.error || 'API error ' + res.status + '. Check your key.');
+    }
 
-If not found say:
-"This is not directly mentioned in the provided Vachanamrut."
-
-End with:
-"Jai Swaminarayan 🙏"
-
-Question: ${question}`;
-
-      const ragPromises = ragIds.map(ragId => {
-        const body = new URLSearchParams();
-        body.append('prompt', finalPrompt);
-        body.append('model', model);
-        return fetch(`https://api.straico.com/v0/rag/${ragId}/prompt`, {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + key },
-          body: body
-        }).then(r => r.json()).catch(() => null);
-      });
-
-      const results = await Promise.all(ragPromises);
-
-      const hasRef = s => /gadhada|sarangpur|vachanamrut|maharaj says/i.test(s);
-
-      // Priority 1: first answer with a real Vachanamrut reference
-      let winner = null;
-      for (const d of results) {
-        const candidate = d?.data?.answer || d?.response?.answer || '';
-        if (candidate && hasRef(candidate)) { winner = { ans: candidate, coins: d?.data?.coins_used || 0 }; break; }
-      }
-      // Priority 2: first non-empty answer (even if no reference found)
-      if (!winner) {
-        for (const d of results) {
-          const candidate = d?.data?.answer || d?.response?.answer || '';
-          if (candidate) { winner = { ans: candidate, coins: d?.data?.coins_used || 0 }; break; }
-        }
-      }
-
-      ans   = winner?.ans   || 'This is not directly mentioned in the provided Vachanamrut. Jai Swaminarayan 🙏';
-      coins = winner?.coins || 0;
-
-    } else {
-      // Standard prompt completion fallback (no RAG)
-      const fullMessage = SYSTEM_PROMPT + '\n\n[USER QUESTION]\n' + question;
-
-      const res = await fetch('https://api.straico.com/v1/prompt/completion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-        body: JSON.stringify({ models: [model], message: fullMessage })
-      });
-
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.message || e.error || 'API error ' + res.status + '. Check your key.');
-      }
-
-      const d = await res.json();
-      console.log('Straico response:', JSON.stringify(d));
-      const completions = d?.data?.completions;
-      if (completions) {
-        const modelKey = Object.keys(completions)[0];
-        const modelData = completions[modelKey];
-        ans   = modelData?.completion?.choices?.[0]?.message?.content || '';
-        coins = modelData?.price?.total || 0;
-      }
+    const d = await res.json();
+    console.log('Straico response:', JSON.stringify(d));
+    const completions = d?.data?.completions;
+    if (completions) {
+      const modelKey = Object.keys(completions)[0];
+      const modelData = completions[modelKey];
+      ans   = modelData?.completion?.choices?.[0]?.message?.content || '';
+      coins = modelData?.price?.total || 0;
     }
 
     if (!ans) throw new Error('Empty response. Try again or switch model.');
