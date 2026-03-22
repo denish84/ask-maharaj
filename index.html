@@ -129,7 +129,7 @@ tailwind.config = {
     position: relative;
     overflow: hidden;
     width: 100%;
-    margin-top: 18px;
+    margin-top: 26px;
     padding: 15px 20px;
     border: none;
     border-radius: 14px;
@@ -170,24 +170,6 @@ tailwind.config = {
   /* ── Mala loader ── */
   .mala-spin { animation: malaRotate 1.6s linear infinite; display: inline-block; }
 
-  /* ── Settings modal input ── */
-  input[type=password], input[type=text] {
-    background: rgba(0,0,0,.35);
-    border: 1px solid rgba(232,131,42,.22);
-    border-radius: 12px;
-    padding: 12px 14px;
-    font-family: 'Crimson Pro', serif;
-    font-size: 15px;
-    color: #fdf6ec;
-    outline: none;
-    transition: border-color .2s, box-shadow .2s;
-  }
-  input:focus {
-    border-color: rgba(232,131,42,.52);
-    box-shadow: 0 0 0 3px rgba(232,131,42,.12);
-  }
-  input::placeholder { color: rgba(253,246,236,.28); font-style: italic; }
-
   /* ── Answer text ── */
   .answer-text { white-space: pre-wrap; }
 
@@ -205,7 +187,7 @@ tailwind.config = {
   ::-webkit-scrollbar-thumb { background: rgba(232,131,42,.28); border-radius: 2px; }
 </style>
 </head>
-<body class="bg-[#0f0600] text-[#fdf6ec] overflow-x-hidden" style="min-height:100dvh;display:flex;flex-direction:column;align-items:center">
+<body class="bg-[#0f0600] text-[#fdf6ec] overflow-x-hidden overflow-y-auto" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-top:max(env(safe-area-inset-top,0),24px);padding-bottom:max(env(safe-area-inset-bottom,0),24px)">
 
 <!-- ══════════════════════════════════
      MANDALA BACKGROUND
@@ -255,61 +237,35 @@ tailwind.config = {
 <!-- ══════════════════════════════════
      MAIN CONTENT
 ════════════════════════════════════ -->
-<div class="relative z-10 w-full max-w-[480px] px-5 pt-safe flex flex-col flex-1" style="padding-bottom:max(env(safe-area-inset-bottom,0) + 16px, 28px)">
-
-  <!-- ── Settings gear (top-right) ── -->
-  <div class="flex justify-end py-3" style="animation:fadeDown .6s ease both">
-    <button type="button" onclick="openSettings()"
-      class="w-10 h-10 flex items-center justify-center rounded-full text-lg transition-all"
-      style="color:rgba(232,131,42,.55)"
-      onmouseover="this.style.background='rgba(232,131,42,.1)';this.style.color='rgba(232,131,42,.9)'"
-      onmouseout="this.style.background='';this.style.color='rgba(232,131,42,.55)'"
-      aria-label="API Settings">⚙️</button>
-  </div>
+<div class="relative z-10 w-full flex flex-col" style="max-width:480px;padding-left:20px;padding-right:20px">
 
   <!-- ── Hero Header ── -->
-  <header class="text-center pb-5" style="animation:fadeDown .85s ease .06s both">
+  <header class="text-center pb-10" style="animation:fadeDown .85s ease .06s both">
     <!-- Om — larger, no lotus below it -->
-    <div class="relative inline-flex items-center justify-center w-20 h-20 mb-3">
+    <div class="relative inline-flex items-center justify-center w-20 h-20 mb-6">
       <div class="absolute w-20 h-20 rounded-full"
            style="background:radial-gradient(circle,rgba(232,131,42,.26) 0%,transparent 68%);animation:omHalo 4s ease-in-out infinite"></div>
       <span class="relative leading-none block" style="font-size:3.5rem;animation:glowPulse 3.2s ease-in-out infinite">🕉</span>
     </div>
 
-    <h1 class="gold-text font-gujarati font-bold tracking-[.02em] mb-2"
+    <h1 class="gold-text font-gujarati font-bold tracking-[.02em] mb-4"
         style="font-size:clamp(2rem,7vw,2.4rem)">Ask Maharaj</h1>
-    <p class="italic font-light text-[1.05rem]" style="color:rgba(232,220,200,.72)">Vachanamrut ni Vaat, Maharaj ni Saath</p>
-    <p class="text-[.65rem] uppercase tracking-[.14em] mt-2" style="color:rgba(232,131,42,.48)">Swaminarayan Satsang · Surat</p>
+    <p class="italic font-light text-[1.05rem] mb-1" style="color:rgba(232,220,200,.72)">Vachanamrut ni Vaat, Maharaj ni Saath</p>
+    <p class="text-[.65rem] uppercase tracking-[.14em] mt-4" style="color:rgba(232,131,42,.48)">Swaminarayan Satsang · Surat</p>
   </header>
 
   <!-- Divider -->
-  <div class="flex items-center gap-3 mb-4 opacity-30" style="animation:fadeIn .9s ease .1s both">
+  <div class="flex items-center gap-3 mb-10 opacity-30" style="animation:fadeIn .9s ease .1s both">
     <div class="flex-1 h-px" style="background:linear-gradient(to right,transparent,#e8832a)"></div>
     <span style="color:#e8832a;font-size:11px;letter-spacing:.2em">✦</span>
     <div class="flex-1 h-px" style="background:linear-gradient(to left,transparent,#e8832a)"></div>
   </div>
 
-  <!-- ── Stats pill (centered, below divider) ── -->
-  <div class="flex justify-center mb-5" style="animation:fadeUp .7s ease .12s both">
-    <div class="glass inline-flex items-center gap-5 px-6 py-3 rounded-full"
-         style="border-color:rgba(232,131,42,.2);box-shadow:0 4px 20px rgba(0,0,0,.2)">
-      <div class="text-center">
-        <span class="block text-[1.15rem] font-semibold leading-none font-gujarati" style="color:#f5a623" id="sA">0</span>
-        <span class="block text-[9px] uppercase tracking-widest mt-0.5" style="color:rgba(232,220,200,.45)">Answered</span>
-      </div>
-      <div class="w-px h-8" style="background:linear-gradient(to bottom,transparent,rgba(232,131,42,.35),transparent)"></div>
-      <div class="text-center">
-        <span class="block text-[1.15rem] font-semibold leading-none font-gujarati" style="color:#f5a623" id="sC">0</span>
-        <span class="block text-[9px] uppercase tracking-widest mt-0.5" style="color:rgba(232,220,200,.45)">Cached</span>
-      </div>
-    </div>
-  </div>
-
   <!-- ── Question card (glass) ── -->
-  <div class="glass rounded-2xl p-5 mb-4"
+  <div class="glass rounded-2xl p-7 mb-8"
        style="box-shadow:0 8px 32px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);animation:fadeUp .8s ease .12s both">
 
-    <div class="flex items-center gap-3 mb-3">
+    <div class="flex items-center gap-3 mb-5">
       <div class="flex-1 h-px" style="background:linear-gradient(to right,rgba(232,131,42,.35),transparent)"></div>
       <label class="text-[.75rem] uppercase tracking-[.14em] font-semibold"
              style="color:rgba(232,131,42,.85)">🙏 Your Question</label>
@@ -320,7 +276,7 @@ tailwind.config = {
       placeholder="Maharaj ne prashn pucho... 🙏"></textarea>
 
     <!-- Question chips -->
-    <div class="flex flex-wrap gap-2 mt-3">
+    <div class="flex flex-wrap gap-3 mt-6">
       <button type="button" class="chip" onclick="setQ('મનની શાંતિ કેવી રીતે મેળવવી?')">મનની શાંતિ</button>
       <button type="button" class="chip" onclick="setQ('How to control anger according to Maharaj?')">Anger control</button>
       <button type="button" class="chip" onclick="setQ('Ekadashi nu mahatva shu che?')">એકાદશી નું મહત્વ</button>
@@ -328,7 +284,7 @@ tailwind.config = {
     </div>
 
     <!-- Recent questions -->
-    <div id="recentWrap" class="mt-3 pt-3" style="display:none;border-top:1px solid rgba(232,131,42,.12)">
+    <div id="recentWrap" class="mt-6 pt-5" style="display:none;border-top:1px solid rgba(232,131,42,.12)">
       <p class="text-[.6rem] uppercase tracking-widest font-semibold mb-1.5" style="color:rgba(232,131,42,.48)">Recently asked</p>
       <div id="recentList" class="flex flex-col gap-1"></div>
     </div>
@@ -338,17 +294,17 @@ tailwind.config = {
   </div>
 
   <!-- ── Loading: Mala spinner ── -->
-  <div id="loading" class="text-center py-10">
+  <div id="loading" class="text-center py-14">
     <span class="mala-spin text-5xl inline-block">📿</span>
-    <p class="mt-4 italic font-light text-base" style="color:rgba(232,220,200,.58)">Maharaj ni vaat dhundhai rahi chhe…</p>
+    <p class="mt-6 italic font-light text-base" style="color:rgba(232,220,200,.58)">Maharaj ni vaat dhundhai rahi chhe…</p>
   </div>
 
   <!-- ── Error box ── -->
-  <div id="errBox" class="mb-4 px-5 py-4 rounded-2xl text-[15px] leading-relaxed"
+  <div id="errBox" class="mb-8 px-5 py-5 rounded-2xl text-[15px] leading-relaxed"
        style="background:rgba(180,40,40,.12);border:1px solid rgba(220,80,80,.35);backdrop-filter:blur(12px);color:#f0a0a0"></div>
 
   <!-- ── Answer card (scripture scroll) ── -->
-  <div id="ansCard" class="relative rounded-[10px] mb-5 overflow-hidden"
+  <div id="ansCard" class="relative rounded-[10px] mb-10 overflow-hidden"
        style="background:linear-gradient(180deg,rgba(253,246,236,.04) 0%,rgba(15,6,0,.2) 100%),rgba(20,10,4,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(232,131,42,.38);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset,0 24px 48px rgba(0,0,0,.45),0 0 80px rgba(232,131,42,.08)">
 
     <div class="relative z-10 p-6 pt-7">
@@ -387,9 +343,8 @@ tailwind.config = {
     </div>
   </div>
 
-  <!-- ── Footer (pushed to bottom via flex-1 spacer above) ── -->
-  <div class="flex-1"></div>
-  <footer class="text-center pt-4 pb-1" style="animation:fadeIn 1s ease .3s both">
+  <!-- ── Footer ── -->
+  <footer class="text-center pt-10 pb-2" style="animation:fadeIn 1s ease .3s both">
     <p class="font-gujarati font-semibold text-[1.1rem] tracking-[.04em]" style="color:rgba(253,246,236,.85)">Jai Swaminarayan 🙏</p>
     <p class="text-[.7rem] italic mt-1.5" style="color:rgba(232,220,200,.32)">Built with love for the Satsang community · Surat</p>
   </footer>
@@ -420,44 +375,12 @@ tailwind.config = {
 <span id="mdlStatus" style="display:none"></span>
 <span id="cLbl"       style="display:none"></span>
 
-<!-- ══════════════════════════════════
-     SETTINGS MODAL
-════════════════════════════════════ -->
-<div id="settingsOverlay"
-     style="display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;padding:24px;background:rgba(15,6,0,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)">
-  <div class="glass w-full rounded-2xl p-6"
-       style="max-width:420px;border-color:rgba(232,131,42,.32);box-shadow:0 32px 64px rgba(0,0,0,.55)">
-    <div class="flex justify-between items-center mb-5">
-      <h2 class="font-gujarati font-semibold text-lg" style="color:#f5a623">⚙️ API Settings</h2>
-      <button type="button" onclick="closeSettings()"
-        class="w-8 h-8 flex items-center justify-center rounded-full text-2xl leading-none transition-all"
-        style="color:rgba(232,220,200,.55)"
-        onmouseover="this.style.background='rgba(255,255,255,.1)';this.style.color='#fdf6ec'"
-        onmouseout="this.style.background='';this.style.color='rgba(232,220,200,.55)'">&times;</button>
-    </div>
-    <label class="block text-[.65rem] uppercase tracking-[.12em] font-semibold mb-2"
-           style="color:rgba(232,131,42,.8)">🔑 Straico API Key</label>
-    <div class="flex gap-2">
-      <input type="password" id="apiKey" placeholder="Paste your Straico API key here…" style="flex:1;min-width:0"/>
-      <button type="button" onclick="saveKey()"
-        class="flex-shrink-0 rounded-xl px-4 text-sm font-semibold font-serif cursor-pointer transition-all active:scale-[.97]"
-        style="background:rgba(232,131,42,.12);border:1px solid rgba(232,131,42,.38);color:#f5a623;padding:12px 16px"
-        onmouseover="this.style.background='rgba(232,131,42,.22)'"
-        onmouseout="this.style.background='rgba(232,131,42,.12)'">Save</button>
-    </div>
-    <div id="savedMsg" style="display:none;font-size:12px;color:#8bc97a;margin-top:10px;line-height:1.4">
-      ✓ Key saved in your browser (not sent anywhere else)
-    </div>
-    <p class="text-[11px] italic mt-3 leading-relaxed" style="color:rgba(232,220,200,.38)">
-      Your key is stored only in your browser's localStorage and never sent to any server other than Straico.
-    </p>
-  </div>
-</div>
-
 <script>
 /* ═══════════════════════════════════════════════════════════════
    ORIGINAL JS — preserved exactly
 ═══════════════════════════════════════════════════════════════ */
+const STRAICO_KEY = '7T-DDtwpsEzmeJifqThjw728c0L0JYrzclziqe5DC2hVLzWtkRg';
+
 const SYSTEM_PROMPT = `You are a humble, wise, and deeply knowledgeable Satsang guide. Your purpose is to help modern devotees overcome daily life challenges by applying the pure teachings of Bhagwan Swaminarayan, specifically from the Vachanamrut and Swamini Vato.
 
 Core Directives:
@@ -485,22 +408,9 @@ let cache = JSON.parse(localStorage.getItem('amCache') || '{}');
 let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}');
 
 window.onload = () => {
-  const k = localStorage.getItem('straicoKey');
-  if (k) {
-    document.getElementById('apiKey').value = k;
-    document.getElementById('savedMsg').style.display = 'block';
-    loadModels(k);
-  }
+  loadModels(STRAICO_KEY);
   renderStats();
 };
-
-function saveKey() {
-  const k = document.getElementById('apiKey').value.trim();
-  if (!k) { alert('Paste your key first'); return; }
-  localStorage.setItem('straicoKey', k);
-  document.getElementById('savedMsg').style.display = 'block';
-  loadModels(k);
-}
 
 async function loadModels(key) {
   const sel = document.getElementById('mdl');
@@ -559,21 +469,17 @@ function updateCost() {
 
 function setQ(t) { document.getElementById('q').value = t; }
 
-function renderStats() {
-  document.getElementById('sA').textContent  = stats.a;
-  document.getElementById('sC').textContent  = stats.c;
-  document.getElementById('sCo').textContent = parseFloat(stats.co).toFixed(1);
-}
+function renderStats() {}
 
 function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0,120); }
 
 async function ask() {
-  const key      = localStorage.getItem('straicoKey') || document.getElementById('apiKey').value.trim();
+  const key      = STRAICO_KEY.trim();
   const question = document.getElementById('q').value.trim();
   const model    = document.getElementById('mdl').value;
   const cacheKey = question;
 
-  if (!key)      { showErr('Please save your Straico API key first.'); return; }
+  if (!key)      { showErr('Please set STRAICO_KEY in the script.'); return; }
   if (!question) { showErr('Please type a question first 🙏'); return; }
 
   // Cache hit — free!
@@ -672,22 +578,8 @@ function share() {
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') ask(); });
 
 /* ═══════════════════════════════════════════════════════════════
-   EXTENSIONS — settings modal, recent questions, qEcho
+   EXTENSIONS — recent questions, qEcho
 ═══════════════════════════════════════════════════════════════ */
-
-// Settings modal
-function openSettings() {
-  document.getElementById('settingsOverlay').style.display = 'flex';
-}
-function closeSettings() {
-  document.getElementById('settingsOverlay').style.display = 'none';
-}
-document.getElementById('settingsOverlay').addEventListener('click', function(e) {
-  if (e.target === this) closeSettings();
-});
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeSettings();
-});
 
 // Recent questions
 function saveRecentQuestion(q) {
