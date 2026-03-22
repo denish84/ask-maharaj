@@ -547,6 +547,8 @@ async function ask() {
     return;
   }
 
+  console.log('Daily limit check:', JSON.stringify(limitData), 'today:', today);
+
   setLoad(true); hideErr(); hideAns();
 
   try {
