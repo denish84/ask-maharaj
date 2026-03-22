@@ -900,10 +900,14 @@ End with:
 
 Question: ${question}`;
 
-      const res = await fetch('https://api.straico.com/v0/rag/prompt/completion', {
+      const body = new URLSearchParams();
+      body.append('prompt', finalPrompt);
+      body.append('model', model);
+
+      const res = await fetch(`https://api.straico.com/v0/rag/${ragIds[0]}/prompt`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-        body: JSON.stringify({ rags: ragIds, model: model, prompt: finalPrompt })
+        headers: { 'Authorization': 'Bearer ' + key },
+        body: body
       });
 
       if (!res.ok) {
@@ -912,15 +916,8 @@ Question: ${question}`;
       }
 
       const d = await res.json();
-      console.log('RAG response:', JSON.stringify(d));
-      ans =
-        d?.data?.answer ||
-        d?.data?.completion ||
-        d?.answer ||
-        d?.completion ||
-        d?.data?.completions?.[model]?.completion?.choices?.[0]?.message?.content ||
-        '';
-      coins  = d?.data?.price?.total || d?.data?.coins || 0;
+      ans = d?.data?.answer || d?.response?.answer || '';
+      coins = d?.data?.coins_used || 0;
 
     } else {
       // Standard prompt completion fallback (no RAG)
