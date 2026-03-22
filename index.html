@@ -607,6 +607,13 @@ async function ask() {
     renderStats(); return;
   }
 
+  const sessionCount = parseInt(sessionStorage.getItem('amSession') || '0');
+
+  if (sessionCount >= 10) {
+    showErr('🙏 Please come back later. Jai Swaminarayan 🙏');
+    return;
+  }
+
   const today = new Date().toDateString();
   const limitData = JSON.parse(localStorage.getItem('amDailyLimit') || '{"date":"","count":0}');
 
@@ -621,8 +628,6 @@ async function ask() {
     showErr(LANG_STRINGS[lang].limitMsg);
     return;
   }
-
-  console.log('Daily limit check:', JSON.stringify(limitData), 'today:', today);
 
   setLoad(true); hideErr(); hideAns();
 
@@ -656,7 +661,7 @@ async function ask() {
 
     limitData.count++;
     localStorage.setItem('amDailyLimit', JSON.stringify(limitData));
-    console.log('Limit saved:', JSON.stringify(limitData));
+    sessionStorage.setItem('amSession', sessionCount + 1);
 
     // Save to cache
     cache[cKey(cacheKey)] = ans;
