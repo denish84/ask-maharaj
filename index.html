@@ -26,6 +26,20 @@ tailwind.config = {
   body { font-family: 'Crimson Pro', Georgia, serif; }
   :root { --cream: #fdf6ec; }
 
+  /* Trust line: must sit above bottom ❧ ornament; readable on inner panel */
+  #trustLine {
+    position: relative;
+    z-index: 2;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    padding: 0 4px;
+    font-size: 11px;
+    font-style: italic;
+    text-align: center;
+    line-height: 1.45;
+    color: rgba(253, 246, 236, 0.72);
+  }
+
   /* ── Keyframes ── */
   @keyframes mandalaSpin { to { transform: rotate(360deg); } }
 
@@ -351,16 +365,16 @@ tailwind.config = {
       </div>
 
       <!-- Scripture scroll body -->
-      <div class="relative px-4 py-5 rounded-xl"
+      <div id="answerScroll" class="relative px-4 pt-5 pb-8 rounded-xl"
            style="background:linear-gradient(180deg,rgba(253,246,236,.07) 0%,rgba(253,246,236,.02) 100%);border:1px solid rgba(253,246,236,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)">
         <span class="absolute left-1/2 -translate-x-1/2 top-1.5 leading-none"
-              aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38)">❧</span>
+              aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);z-index:0">❧</span>
         <div id="ansText" class="answer-text"></div>
-        <p id="trustLine" style="font-size:11px;opacity:0.5;font-style:italic;text-align:center;margin-top:12px;color:var(--cream)">
+        <p id="trustLine">
           AI-assisted guidance. Please verify with a learned santo or the Vachanamrut directly.
         </p>
-        <span class="absolute left-1/2 bottom-1.5 leading-none"
-              aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);transform:translateX(-50%) scaleX(-1);display:block">❧</span>
+        <span class="absolute left-1/2 bottom-2 leading-none"
+              aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);transform:translateX(-50%) scaleX(-1);display:block;z-index:0">❧</span>
       </div>
 
       <!-- Footer row -->
