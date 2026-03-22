@@ -106,19 +106,35 @@ tailwind.config = {
   /* ── Textarea ── */
   textarea {
     width: 100%;
+    display: block;
     background: rgba(0,0,0,.32);
     border: 1px solid rgba(232,131,42,.22);
     border-radius: 12px;
-    padding: 12px 14px;
-    font-family: 'Crimson Pro', serif;
+    padding: 14px 16px;
+    font-family: 'Noto Serif Gujarati', 'Crimson Pro', Georgia, serif;
     font-size: 15px;
-    line-height: 1.65;
+    line-height: 1.5;
     color: #fdf6ec;
+    text-align: start;
     resize: none;
     outline: none;
     transition: border-color .2s, box-shadow .2s;
+    -webkit-font-smoothing: antialiased;
   }
-  textarea::placeholder { color: rgba(253,246,236,.28); font-style: italic; }
+  textarea::placeholder {
+    color: rgba(253,246,236,.28);
+    font-style: italic;
+    font-family: 'Noto Serif Gujarati', 'Crimson Pro', Georgia, serif;
+    line-height: 1.5;
+    opacity: 1;
+  }
+  textarea::-webkit-input-placeholder {
+    line-height: 1.5;
+  }
+  textarea::-moz-placeholder {
+    line-height: 1.5;
+    opacity: 1;
+  }
   textarea:focus {
     border-color: rgba(232,131,42,.52);
     box-shadow: 0 0 0 2px rgba(232,131,42,.14), 0 0 18px rgba(232,131,42,.25);
@@ -272,7 +288,7 @@ tailwind.config = {
       <div class="flex-1 h-px" style="background:linear-gradient(to left,rgba(232,131,42,.35),transparent)"></div>
     </div>
 
-    <textarea id="q" rows="4"
+    <textarea id="q" rows="4" dir="ltr"
       placeholder="Maharaj ne prashn pucho... 🙏"></textarea>
 
     <!-- Question chips -->
