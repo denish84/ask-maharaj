@@ -303,25 +303,26 @@ tailwind.config = {
     <div class="relative inline-flex items-center justify-center w-20 h-20 mb-6">
       <div class="absolute w-20 h-20 rounded-full"
            style="background:radial-gradient(circle,rgba(232,131,42,.26) 0%,transparent 68%);animation:omHalo 4s ease-in-out infinite"></div>
-      <span class="relative leading-none block" style="font-size:3.5rem;animation:glowPulse 3.2s ease-in-out infinite">🕉</span>
+      <span class="relative leading-none block"
+            style="font-family:serif;font-size:36px;color:#fdf6ec;opacity:0.9;filter:drop-shadow(0 0 8px rgba(232,131,42,0.5))">ॐ</span>
     </div>
 
-    <svg width="44" height="56" viewBox="0 0 44 56" fill="none" xmlns="http://www.w3.org/2000/svg"
+    <svg width="50" height="52" viewBox="0 0 50 52" fill="none" xmlns="http://www.w3.org/2000/svg"
          style="margin:8px auto;display:block;filter:drop-shadow(0 0 8px rgba(232,131,42,0.5))"
          aria-hidden="true">
-      <!-- Left arm of U -->
-      <path d="M8 4 L8 34 Q8 52 22 52 Q36 52 36 34 L36 4"
+      <!-- Left arm of U (wider) -->
+      <path d="M4 4 L4 31 Q4 48 25 48 Q46 48 46 31 L46 4"
             stroke="#fdf6ec" stroke-width="5" fill="none"
             stroke-linecap="round" stroke-linejoin="round"/>
       <!-- Inner highlight of U for depth -->
-      <path d="M13 4 L13 34 Q13 46 22 46 Q31 46 31 34 L31 4"
+      <path d="M10 4 L10 31 Q10 42 25 42 Q40 42 40 31 L40 4"
             stroke="rgba(253,246,236,0.3)" stroke-width="2" fill="none"
             stroke-linecap="round" stroke-linejoin="round"/>
       <!-- Red chandlo -->
-      <circle cx="22" cy="26" r="6" fill="#cc2200"/>
-      <circle cx="22" cy="26" r="3.5" fill="#ff4422"/>
+      <circle cx="25" cy="25" r="6" fill="#cc2200"/>
+      <circle cx="25" cy="25" r="3.5" fill="#ff4422"/>
       <!-- Chandlo highlight -->
-      <circle cx="20" cy="24" r="1.2" fill="rgba(255,180,160,0.6)"/>
+      <circle cx="23" cy="23" r="1.2" fill="rgba(255,180,160,0.6)"/>
     </svg>
 
     <h1 class="gold-text font-gujarati font-bold tracking-[.02em] mb-4"
@@ -339,8 +340,8 @@ tailwind.config = {
 
   <!-- ── Language toggle ── -->
   <div class="flex gap-3 mb-8" style="animation:fadeUp .7s ease .14s both">
-    <button type="button" id="langEn" class="lang-pill lang-active" onclick="setLang('en')">🕉 English</button>
-    <button type="button" id="langGu" class="lang-pill" onclick="setLang('gu')">🕉 ગુજરાતી</button>
+    <button type="button" id="langEn" class="lang-pill lang-active" onclick="setLang('en')">English</button>
+    <button type="button" id="langGu" class="lang-pill" onclick="setLang('gu')">ગુજરાતી</button>
   </div>
 
   <!-- ── Question card (glass) ── -->
