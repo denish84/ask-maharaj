@@ -273,7 +273,7 @@ tailwind.config = {
     <h1 class="gold-text font-gujarati font-bold tracking-[.02em] mb-4"
         style="font-size:clamp(2rem,7vw,2.4rem)">Ask Maharaj</h1>
     <p class="italic font-light text-[1.05rem] mb-1" style="color:rgba(232,220,200,.72)">Vachanamrut ni Vaat, Maharaj ni Saath</p>
-    <p class="text-[.65rem] uppercase tracking-[.14em] mt-4" style="color:rgba(232,131,42,.48)">Swaminarayan Satsang · Surat</p>
+    <p class="text-[.65rem] uppercase tracking-[.14em] mt-4" style="color:rgba(245,200,155,.88)">Swaminarayan Satsang · Surat</p>
   </header>
 
   <!-- Divider -->
@@ -355,6 +355,10 @@ tailwind.config = {
               aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);transform:translateX(-50%) scaleX(-1);display:block">❧</span>
       </div>
 
+      <p style="font-size:11px; opacity:0.5; font-style:italic; text-align:center; margin-top:12px;">
+        AI-assisted guidance. Please verify important matters with a learned santo or the Vachanamrut.
+      </p>
+
       <!-- Footer row -->
       <div class="flex justify-between items-center flex-wrap gap-3 mt-5 pt-4"
            style="border-top:1px solid rgba(232,131,42,.18)">
@@ -368,7 +372,7 @@ tailwind.config = {
   <!-- ── Footer ── -->
   <footer class="text-center pt-10 pb-2" style="animation:fadeIn 1s ease .3s both">
     <p class="font-gujarati font-semibold text-[1.1rem] tracking-[.04em]" style="color:rgba(253,246,236,.85)">Jai Swaminarayan 🙏</p>
-    <p class="text-[.7rem] italic mt-1.5" style="color:rgba(232,220,200,.32)">Built with love for the Satsang community · Surat</p>
+    <p class="text-[.7rem] italic mt-1.5" style="color:rgba(232,220,200,.62)">Built with love for the Satsang community · Surat</p>
   </footer>
 
 </div><!-- /main -->
@@ -513,6 +517,19 @@ async function ask() {
     renderStats(); return;
   }
 
+  const today = new Date().toDateString();
+  const limitData = JSON.parse(localStorage.getItem('amDailyLimit') || '{"date":"","count":0}');
+
+  if (limitData.date !== today) {
+    limitData.date = today;
+    limitData.count = 0;
+  }
+
+  if (limitData.count >= 3) {
+    showErr('🙏 Aajni 3 prashn ni limit puri thai. Kal pachi aavjo. Jai Swaminarayan 🙏');
+    return;
+  }
+
   setLoad(true); hideErr(); hideAns();
 
   try {
@@ -542,6 +559,9 @@ async function ask() {
     }
 
     if (!ans) throw new Error('Empty response. Try again or switch model.');
+
+    limitData.count++;
+    localStorage.setItem('amDailyLimit', JSON.stringify(limitData));
 
     // Save to cache
     cache[cKey(cacheKey)] = ans;
