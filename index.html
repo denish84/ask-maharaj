@@ -376,8 +376,8 @@ tailwind.config = {
               style="filter:drop-shadow(0 2px 8px rgba(232,131,42,.32))">📖</span>
         <span class="text-[.65rem] uppercase tracking-[.14em] font-semibold font-serif"
               style="color:rgba(245,166,35,.95)">Maharaj Kahe Chhe</span>
-        <span id="cTag" class="ml-auto text-[11px] rounded-full px-3 py-1"
-              style="display:none;background:rgba(125,187,110,.14);border:1px solid rgba(125,187,110,.38);color:#8fd88a">⚡ From Cache</span>
+        <span id="cTag" class="ml-auto"
+              style="display:none;font-size:16px;opacity:0.6;filter:drop-shadow(0 0 4px rgba(232,131,42,0.5))">🕉</span>
       </div>
 
       <!-- Scripture scroll body -->
@@ -703,7 +703,7 @@ function mdToHtml(text) {
 
 function showAns(text, cached, coins) {
   document.getElementById('ansText').innerHTML = mdToHtml(text);
-  document.getElementById('cTag').style.display = cached ? 'inline-block' : 'none';
+  document.getElementById('cTag').style.display = 'inline-block';
   const c = document.getElementById('ansCard');
   c.classList.add('show');
   c.scrollIntoView({ behavior:'smooth', block:'nearest' });
