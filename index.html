@@ -24,6 +24,7 @@ tailwind.config = {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body { font-family: 'Crimson Pro', Georgia, serif; }
+  :root { --cream: #fdf6ec; }
 
   /* ── Keyframes ── */
   @keyframes mandalaSpin { to { transform: rotate(360deg); } }
@@ -186,14 +187,19 @@ tailwind.config = {
     border-radius: 0 0 2px 2px;
   }
 
-  /* ── Coin info span ── */
-  #coinInfo span { color: #f5a623; font-weight: 600; }
-
   /* ── Mala loader ── */
   .mala-spin { animation: malaRotate 1.6s linear infinite; display: inline-block; }
 
   /* ── Answer text ── */
   .answer-text { white-space: pre-wrap; }
+  #ansText.answer-text {
+    margin-top: 0.5rem;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: #fdf6ec;
+    text-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
 
   /* ── Safe area ── */
   .pt-safe { padding-top: env(safe-area-inset-top, 0); }
@@ -349,20 +355,17 @@ tailwind.config = {
            style="background:linear-gradient(180deg,rgba(253,246,236,.07) 0%,rgba(253,246,236,.02) 100%);border:1px solid rgba(253,246,236,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)">
         <span class="absolute left-1/2 -translate-x-1/2 top-1.5 leading-none"
               aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38)">❧</span>
-        <div id="ansText" class="answer-text mt-2 font-serif text-[1.05rem] leading-[1.9] text-[#fdf6ec]"
-             style="text-shadow:0 1px 2px rgba(0,0,0,.2)"></div>
+        <div id="ansText" class="answer-text"></div>
+        <p id="trustLine" style="font-size:11px;opacity:0.5;font-style:italic;text-align:center;margin-top:12px;color:var(--cream)">
+          AI-assisted guidance. Please verify with a learned santo or the Vachanamrut directly.
+        </p>
         <span class="absolute left-1/2 bottom-1.5 leading-none"
               aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);transform:translateX(-50%) scaleX(-1);display:block">❧</span>
       </div>
 
-      <p style="font-size:11px; opacity:0.5; font-style:italic; text-align:center; margin-top:12px;">
-        AI-assisted guidance. Please verify important matters with a learned santo or the Vachanamrut.
-      </p>
-
       <!-- Footer row -->
-      <div class="flex justify-between items-center flex-wrap gap-3 mt-5 pt-4"
+      <div class="flex justify-center items-center flex-wrap gap-3 mt-5 pt-4"
            style="border-top:1px solid rgba(232,131,42,.18)">
-        <span id="coinInfo" class="text-[13px]" style="color:rgba(160,128,96,.85)"></span>
         <button type="button" onclick="share()" class="chip" style="font-style:normal;font-weight:600">Share on WhatsApp 📤</button>
       </div>
 
@@ -598,9 +601,6 @@ function mdToHtml(text) {
 function showAns(text, cached, coins) {
   document.getElementById('ansText').innerHTML = mdToHtml(text);
   document.getElementById('cTag').style.display = cached ? 'inline-block' : 'none';
-  document.getElementById('coinInfo').innerHTML = cached
-    ? '⚡ From cache — <span>0 coins</span>'
-    : 'Coins used: <span>' + parseFloat(coins).toFixed(2) + '</span>';
   const c = document.getElementById('ansCard');
   c.classList.add('show');
   c.scrollIntoView({ behavior:'smooth', block:'nearest' });
@@ -613,7 +613,9 @@ function hideErr() { document.getElementById('errBox').classList.remove('show');
 function share() {
   const q = document.getElementById('q').value.trim();
   const a = document.getElementById('ansText').textContent;
-  const t = '🕉 *Ask Maharaj — Vachanamrut AI*\n\n*Question:* ' + q + '\n\n*Answer:* ' + a + '\n\n_Jai Swaminarayan 🙏_';
+  const t = '🕉 *Ask Maharaj*\n\n*Prashn:* ' + q +
+            '\n\n*Jawab:* ' + a +
+            '\n\n_Jai Swaminarayan 🙏_\n👉 https://ask-maharaj.vercel.app';
   window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
 }
 
