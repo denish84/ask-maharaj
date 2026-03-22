@@ -205,7 +205,7 @@ tailwind.config = {
   ::-webkit-scrollbar-thumb { background: rgba(232,131,42,.28); border-radius: 2px; }
 </style>
 </head>
-<body class="bg-[#0f0600] min-h-screen text-[#fdf6ec] overflow-x-hidden" style="min-height:100dvh">
+<body class="bg-[#0f0600] text-[#fdf6ec] overflow-x-hidden" style="min-height:100dvh;display:flex;flex-direction:column;align-items:center">
 
 <!-- ══════════════════════════════════
      MANDALA BACKGROUND
@@ -255,21 +255,10 @@ tailwind.config = {
 <!-- ══════════════════════════════════
      MAIN CONTENT
 ════════════════════════════════════ -->
-<div class="relative z-10 max-w-[480px] mx-auto px-5 pt-safe" style="padding-bottom:max(env(safe-area-inset-bottom,0) + 16px, 24px)">
+<div class="relative z-10 w-full max-w-[480px] px-5 pt-safe flex flex-col flex-1" style="padding-bottom:max(env(safe-area-inset-bottom,0) + 16px, 28px)">
 
-  <!-- ── Top bar: Stats + Settings gear ── -->
-  <div class="flex justify-between items-center py-4" style="animation:fadeDown .7s ease both">
-    <div class="flex items-center gap-3">
-      <div class="text-center">
-        <span class="block text-[1.25rem] font-semibold text-[#f5a623] leading-none font-gujarati" id="sA">0</span>
-        <span class="block text-[10px] uppercase tracking-widest text-[#e8dcc8] opacity-45 mt-0.5">Answered</span>
-      </div>
-      <div class="w-px self-stretch my-1" style="background:linear-gradient(to bottom,transparent,rgba(232,131,42,.32),transparent)"></div>
-      <div class="text-center">
-        <span class="block text-[1.25rem] font-semibold text-[#f5a623] leading-none font-gujarati" id="sC">0</span>
-        <span class="block text-[10px] uppercase tracking-widest text-[#e8dcc8] opacity-45 mt-0.5">Cached</span>
-      </div>
-    </div>
+  <!-- ── Settings gear (top-right) ── -->
+  <div class="flex justify-end py-3" style="animation:fadeDown .6s ease both">
     <button type="button" onclick="openSettings()"
       class="w-10 h-10 flex items-center justify-center rounded-full text-lg transition-all"
       style="color:rgba(232,131,42,.55)"
@@ -279,46 +268,53 @@ tailwind.config = {
   </div>
 
   <!-- ── Hero Header ── -->
-  <header class="text-center py-2 pb-5" style="animation:fadeDown .85s ease .06s both">
-    <!-- Om with radial halo -->
-    <div class="relative inline-flex items-center justify-center w-16 h-16 mb-2">
-      <div class="absolute w-16 h-16 rounded-full"
-           style="background:radial-gradient(circle,rgba(232,131,42,.22) 0%,transparent 70%);animation:omHalo 4s ease-in-out infinite"></div>
-      <span class="relative text-[2.6rem] leading-none block"
-            style="animation:glowPulse 3.2s ease-in-out infinite">🕉</span>
-    </div>
-
-    <!-- Lotus SVG -->
-    <div class="w-9 h-9 mx-auto mb-3 opacity-55" aria-hidden="true">
-      <svg viewBox="0 0 64 64" fill="none" stroke="#e8832a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M32 8c-8 12-8 20 0 28c8-8 8-16 0-28z" opacity=".6"/>
-        <path d="M32 8c8 12 8 20 0 28c-8-8-8-16 0-28z" opacity=".6"/>
-        <path d="M14 36c10 4 18 4 18 18c-8-10-14-12-18-18z" opacity=".45"/>
-        <path d="M50 36c-10 4-18 4-18 18c8-10 14-12 18-18z" opacity=".45"/>
-        <path d="M24 52c4-6 8-8 8-8s4 2 8 8" opacity=".5"/>
-        <circle cx="32" cy="44" r="2" fill="#e8832a" stroke="none" opacity=".5"/>
-      </svg>
+  <header class="text-center pb-5" style="animation:fadeDown .85s ease .06s both">
+    <!-- Om — larger, no lotus below it -->
+    <div class="relative inline-flex items-center justify-center w-20 h-20 mb-3">
+      <div class="absolute w-20 h-20 rounded-full"
+           style="background:radial-gradient(circle,rgba(232,131,42,.26) 0%,transparent 68%);animation:omHalo 4s ease-in-out infinite"></div>
+      <span class="relative leading-none block" style="font-size:3.5rem;animation:glowPulse 3.2s ease-in-out infinite">🕉</span>
     </div>
 
     <h1 class="gold-text font-gujarati font-bold tracking-[.02em] mb-2"
-        style="font-size:clamp(1.8rem,6.5vw,2.2rem)">Ask Maharaj</h1>
+        style="font-size:clamp(2rem,7vw,2.4rem)">Ask Maharaj</h1>
     <p class="italic font-light text-[1.05rem]" style="color:rgba(232,220,200,.72)">Vachanamrut ni Vaat, Maharaj ni Saath</p>
     <p class="text-[.65rem] uppercase tracking-[.14em] mt-2" style="color:rgba(232,131,42,.48)">Swaminarayan Satsang · Surat</p>
   </header>
 
   <!-- Divider -->
-  <div class="flex items-center gap-3 mb-5 opacity-30" style="animation:fadeIn .9s ease .1s both">
+  <div class="flex items-center gap-3 mb-4 opacity-30" style="animation:fadeIn .9s ease .1s both">
     <div class="flex-1 h-px" style="background:linear-gradient(to right,transparent,#e8832a)"></div>
     <span style="color:#e8832a;font-size:11px;letter-spacing:.2em">✦</span>
     <div class="flex-1 h-px" style="background:linear-gradient(to left,transparent,#e8832a)"></div>
+  </div>
+
+  <!-- ── Stats pill (centered, below divider) ── -->
+  <div class="flex justify-center mb-5" style="animation:fadeUp .7s ease .12s both">
+    <div class="glass inline-flex items-center gap-5 px-6 py-3 rounded-full"
+         style="border-color:rgba(232,131,42,.2);box-shadow:0 4px 20px rgba(0,0,0,.2)">
+      <div class="text-center">
+        <span class="block text-[1.15rem] font-semibold leading-none font-gujarati" style="color:#f5a623" id="sA">0</span>
+        <span class="block text-[9px] uppercase tracking-widest mt-0.5" style="color:rgba(232,220,200,.45)">Answered</span>
+      </div>
+      <div class="w-px h-8" style="background:linear-gradient(to bottom,transparent,rgba(232,131,42,.35),transparent)"></div>
+      <div class="text-center">
+        <span class="block text-[1.15rem] font-semibold leading-none font-gujarati" style="color:#f5a623" id="sC">0</span>
+        <span class="block text-[9px] uppercase tracking-widest mt-0.5" style="color:rgba(232,220,200,.45)">Cached</span>
+      </div>
+    </div>
   </div>
 
   <!-- ── Question card (glass) ── -->
   <div class="glass rounded-2xl p-5 mb-4"
        style="box-shadow:0 8px 32px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);animation:fadeUp .8s ease .12s both">
 
-    <label class="block text-[.65rem] uppercase tracking-[.12em] font-semibold mb-3"
-           style="color:rgba(232,131,42,.8)">🙏 Your Question</label>
+    <div class="flex items-center gap-3 mb-3">
+      <div class="flex-1 h-px" style="background:linear-gradient(to right,rgba(232,131,42,.35),transparent)"></div>
+      <label class="text-[.75rem] uppercase tracking-[.14em] font-semibold"
+             style="color:rgba(232,131,42,.85)">🙏 Your Question</label>
+      <div class="flex-1 h-px" style="background:linear-gradient(to left,rgba(232,131,42,.35),transparent)"></div>
+    </div>
 
     <textarea id="q" rows="4"
       placeholder="Maharaj ne prashn pucho... 🙏"></textarea>
@@ -391,13 +387,31 @@ tailwind.config = {
     </div>
   </div>
 
-  <!-- ── Footer ── -->
+  <!-- ── Footer (pushed to bottom via flex-1 spacer above) ── -->
+  <div class="flex-1"></div>
   <footer class="text-center pt-4 pb-1" style="animation:fadeIn 1s ease .3s both">
     <p class="font-gujarati font-semibold text-[1.1rem] tracking-[.04em]" style="color:rgba(253,246,236,.85)">Jai Swaminarayan 🙏</p>
     <p class="text-[.7rem] italic mt-1.5" style="color:rgba(232,220,200,.32)">Built with love for the Satsang community · Surat</p>
   </footer>
 
 </div><!-- /main -->
+
+<!-- Desktop "best on mobile" hint — hidden on ≤520px -->
+<div class="fixed bottom-6 left-1/2 z-50 pointer-events-none"
+     style="transform:translateX(-50%);display:none" id="desktopHint">
+  <div class="glass rounded-full px-5 py-2.5 text-sm italic"
+       style="color:rgba(232,220,200,.72);border-color:rgba(232,131,42,.2);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+    📱 Best experienced on mobile
+  </div>
+</div>
+<script>
+  (function() {
+    var hint = document.getElementById('desktopHint');
+    function checkWidth() { hint.style.display = window.innerWidth > 520 ? 'block' : 'none'; }
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+  })();
+</script>
 
 <!-- ── Hidden JS-compatibility elements ── -->
 <select id="mdl" style="display:none">
