@@ -729,6 +729,15 @@ document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') 
 ═══════════════════════════════════════════════════════════════ */
 
 // Recent questions
+function loadRecent(q) {
+  document.getElementById('q').value = q;
+  const cached = cache[cKey(q)];
+  if (cached) {
+    showAns(cached, true, 0);
+    document.getElementById('q').scrollIntoView();
+  }
+}
+
 function saveRecentQuestion(q) {
   let recent = JSON.parse(localStorage.getItem('amRecent') || '[]');
   recent = [q, ...recent.filter(r => r !== q)].slice(0, 3);
@@ -743,7 +752,7 @@ function renderRecentQuestions() {
   if (!recent.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
   list.innerHTML = recent.map(q =>
-    `<button type="button" onclick="setQ(${JSON.stringify(q)})"
+    `<button type="button" onclick="loadRecent(${JSON.stringify(q)})"
       style="text-align:left;font-size:12px;font-style:italic;color:rgba(232,220,200,.55);cursor:pointer;background:none;border:none;padding:2px 4px;width:100%;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .18s;font-family:'Crimson Pro',serif"
       onmouseover="this.style.color='#f5a623'" onmouseout="this.style.color='rgba(232,220,200,.55)'">↩ ${q.slice(0,65)}${q.length>65?'…':''}</button>`
   ).join('');
