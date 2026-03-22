@@ -72,12 +72,7 @@ tailwind.config = {
     from { opacity: 0; transform: translateY(14px) scaleY(.82); transform-origin: top; }
     to   { opacity: 1; transform: translateY(0)    scaleY(1);    transform-origin: top; }
   }
-  /* Mala loader */
-  @keyframes malaRotate { to { transform: rotate(360deg); } }
-
   /* ── Show / hide helpers (JS toggles .show) ── */
-  #loading       { display: none; }
-  #loading.show  { display: block; }
   #ansCard       { display: none; }
   #ansCard.show  { display: block; animation: scrollOpen .65s cubic-bezier(.34,1.56,.64,1) both; }
   #errBox        { display: none; }
@@ -200,9 +195,6 @@ tailwind.config = {
     background: linear-gradient(90deg, transparent, rgba(232,131,42,.88), rgba(245,166,35,.7), rgba(232,131,42,.88), transparent);
     border-radius: 0 0 2px 2px;
   }
-
-  /* ── Mala loader ── */
-  .mala-spin { animation: malaRotate 1.6s linear infinite; display: inline-block; }
 
   /* ── Answer text ── */
   .answer-text { white-space: pre-wrap; }
@@ -363,12 +355,6 @@ tailwind.config = {
 
     <!-- Ask button -->
     <button type="button" id="askBtn" onclick="ask()">🙏 &nbsp;Maharaj ne Pucho</button>
-  </div>
-
-  <!-- ── Loading: Mala spinner ── -->
-  <div id="loading" class="text-center py-14">
-    <span class="mala-spin text-5xl inline-block">📿</span>
-    <p class="mt-6 italic font-light text-base" style="color:rgba(232,220,200,.58)">Maharaj ni vaat dhundhai rahi chhe…</p>
   </div>
 
   <!-- ── Error box ── -->
@@ -692,10 +678,16 @@ async function ask() {
 }
 
 function setLoad(on) {
-  document.getElementById('loading').classList.toggle('show', on);
   const b = document.getElementById('askBtn');
   b.disabled = on;
-  b.textContent = on ? '🕐  Searching scripture…' : '🙏  Maharaj ne Pucho';
+  const lang = localStorage.getItem('amLang') || 'en';
+  if (on) {
+    b.textContent = lang === 'gu'
+      ? '📿 મહારાજ સાંભળી રહ્યા છે...'
+      : '📿 Seeking Maharaj\'s wisdom...';
+  } else {
+    b.textContent = '🙏  Maharaj ne Pucho';
+  }
 }
 
 function mdToHtml(text) {
