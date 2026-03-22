@@ -1,0 +1,16 @@
+node_modules/
+vachanamrut.txt
+vachanamrut-part1.txt
+vachanamrut-part2.txt
+vachanamrut-part3.txt
+vachanamrut-part4.txt
+vachanamrut-part5.txt
+vachnamrut-english.pdf
+test-small.pdf
+test.txt
+upload.js
+extract-pdf.js
+split-txt.js
+package.json
+package-lock.json
+upload-rag.html

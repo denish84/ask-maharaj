@@ -1,8 +1,0 @@
-{
-  "name": "ask-maharaj-tools",
-  "private": true,
-  "description": "Local scripts for Vachanamrut PDF tooling",
-  "dependencies": {
-    "pdf-parse": "^1.1.1"
-  }
-}
