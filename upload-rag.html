@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Upload Vachanamrut RAG — Straico</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Gujarati:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#0f0600;--saffron:#e8832a;--saffron-deep:#b85a12;--saffron-mid:#d9731f;
+    --saffron-glow:#f5a623;--cream:#fdf6ec;--cream-dark:#e8dcc8;--text-muted:#a08060;
+    --glass:rgba(255,255,255,.07);--glass-border:rgba(255,255,255,.14);
+    --ease-out:cubic-bezier(.22,1,.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    min-height:100vh;min-height:100dvh;
+    font-family:'Crimson Pro',Georgia,serif;font-weight:400;
+    color:var(--cream);background:var(--bg);line-height:1.5;
+    -webkit-tap-highlight-color:rgba(232,131,42,.15);
+  }
+  body::before{
+    content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 120% 80% at 50% -20%,rgba(232,131,42,.14) 0%,transparent 55%),
+      radial-gradient(ellipse at center,transparent 0%,rgba(15,6,0,.85) 100%);
+  }
+  .wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 20px 48px}
+  .header{text-align:center;padding:36px 8px 20px;animation:fadeDown .85s var(--ease-out) both}
+  .om{font-size:30px;display:block;margin-bottom:12px;filter:drop-shadow(0 0 14px rgba(232,131,42,.45));animation:glow 3.2s ease-in-out infinite}
+  @keyframes glow{0%,100%{filter:drop-shadow(0 0 10px rgba(232,131,42,.35))}50%{filter:drop-shadow(0 0 22px rgba(245,166,35,.65))}}
+  h1{font-family:'Noto Serif Gujarati',serif;font-weight:600;font-size:clamp(1.4rem,5vw,1.75rem);letter-spacing:.02em;background:linear-gradient(180deg,var(--cream) 0%,var(--saffron-glow) 45%,var(--saffron) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px}
+  .subtitle{font-style:italic;font-weight:300;font-size:.95rem;color:var(--cream-dark);opacity:.75;margin:0 auto}
+  .div{display:flex;align-items:center;justify-content:center;gap:12px;margin:18px 0 16px;opacity:.35}
+  .div::before,.div::after{content:'';flex:1;max-width:100px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,131,42,.55),transparent)}
+  .div-mid{color:var(--saffron);font-size:11px;letter-spacing:.2em}
+  .card{
+    background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--glass-border);border-radius:20px;padding:22px 20px;margin-bottom:16px;
+    box-shadow:0 8px 32px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);
+    animation:fadeUp .8s var(--ease-out) both;
+  }
+  .lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--saffron);opacity:.78;margin-bottom:10px;font-family:'Crimson Pro',serif;font-weight:600}
+  .row{display:flex;gap:10px;align-items:stretch;margin-bottom:12px}
+  .row:last-child{margin-bottom:0}
+  input[type=password],input[type=text]{
+    flex:1;min-width:0;background:rgba(0,0,0,.35);border:1px solid rgba(232,131,42,.22);
+    border-radius:12px;padding:12px 14px;font-family:'Crimson Pro',serif;font-size:15px;
+    color:var(--cream);outline:none;transition:border-color .2s,box-shadow .2s;
+  }
+  input[type=password]:focus,input[type=text]:focus{border-color:rgba(232,131,42,.55);box-shadow:0 0 0 3px rgba(232,131,42,.12)}
+  input::placeholder{color:rgba(253,246,236,.28);font-style:italic}
+  .btn{
+    flex-shrink:0;background:rgba(232,131,42,.12);border:1px solid rgba(232,131,42,.38);
+    border-radius:12px;padding:12px 18px;color:var(--saffron-glow);font-family:'Crimson Pro',serif;
+    font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,box-shadow .2s,transform .2s var(--ease-out);
+    white-space:nowrap;
+  }
+  .btn:active{transform:scale(.97)}
+  @media(hover:hover){.btn:hover{background:rgba(232,131,42,.22);box-shadow:0 4px 16px rgba(232,131,42,.2)}}
+  .btn-big{
+    width:100%;margin-top:4px;padding:15px 20px;border:none;border-radius:14px;
+    font-family:'Noto Serif Gujarati','Crimson Pro',serif;font-size:1rem;font-weight:600;
+    color:#fff;cursor:pointer;position:relative;overflow:hidden;
+    background:linear-gradient(145deg,var(--saffron-deep) 0%,var(--saffron-mid) 45%,var(--saffron) 100%);
+    box-shadow:0 4px 20px rgba(232,131,42,.35),inset 0 -2px 0 rgba(0,0,0,.15),0 0 0 1px rgba(255,255,255,.12) inset;
+    transition:transform .22s var(--ease-out),box-shadow .22s,filter .22s;
+  }
+  .btn-big::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.18) 0%,transparent 45%);pointer-events:none;border-radius:inherit}
+  .btn-big:active:not(:disabled){transform:scale(.98);box-shadow:0 0 36px rgba(232,131,42,.65),0 4px 24px rgba(232,131,42,.45);filter:brightness(1.06)}
+  @media(hover:hover){.btn-big:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(232,131,42,.45)}}
+  .btn-big:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none;filter:grayscale(.15)}
+
+  /* File drop zone */
+  .file-zone{
+    border:2px dashed rgba(232,131,42,.3);border-radius:14px;padding:24px 16px;
+    text-align:center;cursor:pointer;transition:border-color .2s,background .2s;
+    background:rgba(232,131,42,.04);margin-bottom:12px;position:relative;
+  }
+  .file-zone:hover,.file-zone.drag{border-color:rgba(232,131,42,.6);background:rgba(232,131,42,.09)}
+  .file-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .file-icon{font-size:28px;margin-bottom:8px;display:block}
+  .file-name{font-size:13px;color:var(--saffron-glow);margin-top:6px;font-weight:600;word-break:break-all}
+  .file-hint{font-size:12px;color:var(--cream-dark);opacity:.55;font-style:italic}
+
+  /* Steps */
+  .steps{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+  .step{
+    display:flex;align-items:flex-start;gap:12px;padding:14px 16px;
+    background:rgba(232,131,42,.05);border:1px solid rgba(232,131,42,.18);border-radius:14px;
+    transition:background .3s,border-color .3s;
+  }
+  .step.done{background:rgba(125,187,110,.07);border-color:rgba(125,187,110,.3)}
+  .step.active{background:rgba(232,131,42,.1);border-color:rgba(232,131,42,.4)}
+  .step.err{background:rgba(180,40,40,.08);border-color:rgba(220,80,80,.3)}
+  .step-num{width:26px;height:26px;border-radius:50%;background:rgba(232,131,42,.2);border:1px solid rgba(232,131,42,.4);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:600;color:var(--saffron);flex-shrink:0}
+  .step.done .step-num{background:rgba(125,187,110,.25);border-color:rgba(125,187,110,.5);color:#8fd88a}
+  .step.err .step-num{background:rgba(180,40,40,.2);border-color:rgba(220,80,80,.4);color:#f0a0a0}
+  .step-body{flex:1;min-width:0}
+  .step-title{font-size:.9rem;font-weight:600;color:var(--cream);margin-bottom:2px}
+  .step-msg{font-size:.78rem;color:var(--cream-dark);opacity:.7;line-height:1.45;font-style:italic;word-break:break-all}
+
+  /* RAG ID output */
+  .rag-output{
+    display:none;background:rgba(125,187,110,.1);border:1px solid rgba(125,187,110,.4);
+    border-radius:16px;padding:18px 20px;margin-bottom:16px;animation:fadeUp .4s var(--ease-out) both;
+  }
+  .rag-output.show{display:block}
+  .rag-id-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#8fd88a;margin-bottom:8px;font-weight:600}
+  .rag-id-val{font-family:'Crimson Pro',monospace;font-size:1rem;color:var(--cream);word-break:break-all;background:rgba(0,0,0,.35);border-radius:8px;padding:10px 12px;border:1px solid rgba(125,187,110,.3)}
+  .rag-copy-row{display:flex;gap:8px;margin-top:10px}
+  .rag-copy-row a{color:var(--saffron-glow);font-size:13px;text-decoration:none;opacity:.85}
+  .rag-copy-row a:hover{opacity:1;text-decoration:underline}
+
+  .saved-msg{font-size:12px;color:#8bc97a;margin-top:8px;display:none;line-height:1.4}
+
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  .footer-block{text-align:center;padding:24px 0 0}
+  .footer-main{font-family:'Noto Serif Gujarati',serif;font-size:1.05rem;font-weight:600;color:var(--cream);opacity:.8;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <span class="om">📿</span>
+    <h1>Upload Vachanamrut RAG</h1>
+    <p class="subtitle">Create a Straico RAG and upload your PDF</p>
+  </div>
+  <div class="div"><span class="div-mid">✦</span></div>
+
+  <!-- Step 0: API Key -->
+  <div class="card">
+    <div class="lbl">🔑 Straico API Key</div>
+    <div class="row">
+      <input type="password" id="apiKey" placeholder="Paste your Straico API key here…"/>
+      <button type="button" class="btn" onclick="saveKey()">Save</button>
+    </div>
+    <div class="saved-msg" id="savedMsg">✓ Key saved in your browser</div>
+  </div>
+
+  <!-- Upload card -->
+  <div class="card" style="animation-delay:.08s">
+    <div class="lbl">📄 PDF File</div>
+    <label class="file-zone" id="fileZone">
+      <span class="file-icon">📜</span>
+      <p class="file-hint">Tap to choose your Vachanamrut PDF (max 50 MB)</p>
+      <p class="file-name" id="fileName"></p>
+      <input type="file" id="pdfFile" accept=".pdf" onchange="onFileChange(this)"/>
+    </label>
+
+    <div class="lbl" style="margin-top:4px">📿 RAG Name</div>
+    <div class="row" style="margin-bottom:0">
+      <input type="text" id="ragName" value="vachanamrut-rag" placeholder="vachanamrut-rag"/>
+    </div>
+  </div>
+
+  <!-- Upload button -->
+  <button type="button" class="btn-big" id="uploadBtn" onclick="startUpload()">
+    📿 &nbsp;Create RAG &amp; Upload PDF
+  </button>
+
+  <!-- Live steps -->
+  <div class="steps" id="steps" style="display:none;margin-top:4px">
+    <div class="step" id="step1">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Creating RAG…</div>
+        <div class="step-msg" id="step1Msg">Sending request to Straico</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAG ID output -->
+  <div class="rag-output" id="ragOutput">
+    <div class="rag-id-lbl">✓ RAG created — copy this ID into Ask Maharaj</div>
+    <div class="rag-id-val" id="ragIdVal"></div>
+    <div class="rag-copy-row">
+      <a href="#" onclick="copyRagId(event)">📋 Copy RAG ID</a>
+      &nbsp;·&nbsp;
+      <a href="index.html">← Back to Ask Maharaj</a>
+    </div>
+  </div>
+
+  <footer class="footer-block">
+    <p class="footer-main">Jai Swaminarayan 🙏</p>
+  </footer>
+</div>
+<script>
+window.onload = () => {
+  const k = localStorage.getItem('straicoKey');
+  if (k) {
+    document.getElementById('apiKey').value = k;
+    document.getElementById('savedMsg').style.display = 'block';
+  }
+  const r = localStorage.getItem('amRagId');
+  if (r) showExistingRag(r);
+
+  const zone = document.getElementById('fileZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) { document.getElementById('pdfFile').files = e.dataTransfer.files; onFileChange({ files: [f] }); }
+  });
+};
+
+function saveKey() {
+  const k = document.getElementById('apiKey').value.trim();
+  if (!k) { alert('Paste your key first'); return; }
+  localStorage.setItem('straicoKey', k);
+  document.getElementById('savedMsg').style.display = 'block';
+}
+
+function onFileChange(input) {
+  const f = input.files[0];
+  document.getElementById('fileName').textContent = f ? '📄 ' + f.name + ' (' + (f.size / 1048576).toFixed(1) + ' MB)' : '';
+}
+
+function setStep(id, state, msg) {
+  const el = document.getElementById(id);
+  el.className = 'step ' + state;
+  if (msg !== undefined) el.querySelector('[id$=Msg]').textContent = msg;
+}
+
+function showExistingRag(id) {
+  document.getElementById('ragIdVal').textContent = id;
+  document.getElementById('ragOutput').classList.add('show');
+}
+
+async function startUpload() {
+  const key = localStorage.getItem('straicoKey') || document.getElementById('apiKey').value.trim();
+  const ragName = document.getElementById('ragName').value.trim() || 'vachanamrut-rag';
+  const selectedFile = document.getElementById('pdfFile').files[0];
+
+  if (!key)  { alert('Save your API key first.'); return; }
+  if (!selectedFile) { alert('Please choose a PDF file first.'); return; }
+
+  const btn = document.getElementById('uploadBtn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+  document.getElementById('steps').style.display = 'flex';
+  document.getElementById('ragOutput').classList.remove('show');
+
+  setStep('step1', 'active', 'Creating RAG & uploading "' + selectedFile.name + '"…');
+  let ragId = '';
+  try {
+    const formData = new FormData();
+    formData.append('name', ragName);
+    formData.append('description', 'Vachanamrut scripture knowledge base');
+    formData.append('chunking_method', 'recursive');
+    formData.append('files', selectedFile);
+
+    console.log('File size:', selectedFile.size);
+    console.log('File type:', selectedFile.type);
+    console.log('File name:', selectedFile.name);
+
+    const res = await fetch('https://api.straico.com/v0/rag', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key },
+      body: formData
+    });
+    const errorText = await res.text();
+    console.log('RAG creation response:', errorText);
+    let d1;
+    try { d1 = JSON.parse(errorText); } catch (_) { d1 = null; }
+    if (!res.ok) {
+      console.log('Straico create RAG error response:', res.status, errorText, d1);
+      const e = d1 && typeof d1 === 'object' ? d1 : {};
+      throw new Error(e.message || e.error || errorText || 'HTTP ' + res.status);
+    }
+    if (!d1) throw new Error('Invalid JSON from create RAG: ' + errorText);
+    console.log('Create RAG response:', JSON.stringify(d1));
+    ragId = d1?.data?._id || d1?.data?.id || d1?._id || '';
+    if (!ragId) throw new Error('No RAG ID in response: ' + JSON.stringify(d1));
+    setStep('step1', 'done', 'RAG created: ' + ragId);
+  } catch(err) {
+    setStep('step1', 'err', '❌ ' + err.message);
+    btn.disabled = false; btn.textContent = '📿  Retry';
+    return;
+  }
+
+  localStorage.setItem('amRagId', ragId);
+  document.getElementById('ragIdVal').textContent = ragId;
+  document.getElementById('ragOutput').classList.add('show');
+  document.getElementById('ragOutput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  btn.disabled = false;
+  btn.textContent = '✓  Done — upload another?';
+}
+
+function copyRagId(e) {
+  e.preventDefault();
+  const id = document.getElementById('ragIdVal').textContent;
+  navigator.clipboard.writeText(id).then(() => {
+    const a = e.target;
+    a.textContent = '✓ Copied!';
+    setTimeout(() => { a.textContent = '📋 Copy RAG ID'; }, 2000);
+  }).catch(() => {
+    prompt('Copy this RAG ID:', id);
+  });
+}
+</script>
+</body>
+</html>

@@ -272,7 +272,7 @@
   }
 
   .api-row{display:flex;gap:10px;align-items:stretch}
-  input[type=password],textarea,select{
+  input[type=password],input[type=text],textarea,select{
     background:rgba(0,0,0,.35);
     border:1px solid rgba(232,131,42,.22);
     border-radius:12px;
@@ -283,11 +283,11 @@
     outline:none;
     transition:border-color .2s,box-shadow .2s,transform .2s var(--ease-out);
   }
-  input[type=password]:focus,textarea:focus,select:focus{
+  input[type=password]:focus,input[type=text]:focus,textarea:focus,select:focus{
     border-color:rgba(232,131,42,.55);
     box-shadow:0 0 0 3px rgba(232,131,42,.12);
   }
-  input[type=password]::placeholder,textarea::placeholder{
+  input[type=password]::placeholder,input[type=text]::placeholder,textarea::placeholder{
     color:rgba(253,246,236,.28);
     font-style:italic;
   }
@@ -766,6 +766,14 @@ Rules you must always follow:
 6. Never guess or make up references
 7. Tone: humble and warm — like an elder satsangi explaining to a younger one`;
 
+const ragIds = [
+  '69bfec47d12f25ff22771dbe',
+  '69bfec49687b85adb7362439',
+  '69bfec4d687b85adb7362445',
+  '69bfec50687b85adb7362451',
+  '69bfec53687b85adb736245d'
+];
+
 let cache = JSON.parse(localStorage.getItem('amCache') || '{}');
 let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}');
 
@@ -853,15 +861,16 @@ function renderStats() {
 function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0,120); }
 
 async function ask() {
-  const key = localStorage.getItem('straicoKey') || document.getElementById('apiKey').value.trim();
+  const key      = localStorage.getItem('straicoKey') || document.getElementById('apiKey').value.trim();
   const question = document.getElementById('q').value.trim();
-  const model = document.getElementById('mdl').value;
+  const model    = document.getElementById('mdl').value;
+  const cacheKey = ragIds.length > 0 ? `${ragIds.join(',')}:${question}` : question;
 
   if (!key)      { showErr('Please save your Straico API key first.'); return; }
   if (!question) { showErr('Please type a question first 🙏'); return; }
 
   // Cache hit — free!
-  const hit = cache[cKey(question)];
+  const hit = cache[cKey(cacheKey)];
   if (hit) {
     showAns(hit, true, 0);
     stats.a++; stats.c++;
@@ -872,36 +881,71 @@ async function ask() {
   setLoad(true); hideErr(); hideAns();
 
   try {
-    const fullMessage = SYSTEM_PROMPT + '\n\n[USER QUESTION]\n' + question;
-
-    const res = await fetch('https://api.straico.com/v1/prompt/completion', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({ models: [model], message: fullMessage })
-    });
-
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.message || e.error || 'API error ' + res.status + '. Check your key.');
-    }
-
-    const d = await res.json();
-    console.log('Straico response:', JSON.stringify(d));
     let ans = '', coins = 0;
 
-    // Straico v1 response shape — key is the model string
-    const completions = d?.data?.completions;
-    if (completions) {
-      const modelKey = Object.keys(completions)[0];
-      const modelData = completions[modelKey];
-      ans   = modelData?.completion?.choices?.[0]?.message?.content || '';
-      coins = modelData?.price?.total || 0;
+    if (ragIds.length > 0) {
+      // RAG-powered path
+      const finalPrompt = `Answer ONLY using the provided Vachanamrut context.
+
+Start with:
+"In [Vachanamrut ID], Maharaj says..."
+
+Explain in simple Gujarati or English matching user language.
+
+If not found say:
+"This is not directly mentioned in the provided Vachanamrut."
+
+End with:
+"Jai Swaminarayan 🙏"
+
+Question: ${question}`;
+
+      const res = await fetch('https://api.straico.com/v0/rag/prompt/completion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({ rags: ragIds, model: model, prompt: finalPrompt })
+      });
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.message || e.error || 'RAG API error ' + res.status + '. Check your key and RAG ID.');
+      }
+
+      const data = await res.json();
+      console.log('Straico RAG response:', JSON.stringify(data));
+      ans    = data?.data?.answer || data?.data?.completion || data?.answer || '';
+      coins  = data?.data?.price?.total || data?.data?.coins || 0;
+
+    } else {
+      // Standard prompt completion fallback (no RAG)
+      const fullMessage = SYSTEM_PROMPT + '\n\n[USER QUESTION]\n' + question;
+
+      const res = await fetch('https://api.straico.com/v1/prompt/completion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({ models: [model], message: fullMessage })
+      });
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.message || e.error || 'API error ' + res.status + '. Check your key.');
+      }
+
+      const d = await res.json();
+      console.log('Straico response:', JSON.stringify(d));
+      const completions = d?.data?.completions;
+      if (completions) {
+        const modelKey = Object.keys(completions)[0];
+        const modelData = completions[modelKey];
+        ans   = modelData?.completion?.choices?.[0]?.message?.content || '';
+        coins = modelData?.price?.total || 0;
+      }
     }
 
     if (!ans) throw new Error('Empty response. Try again or switch model.');
 
     // Save to cache
-    cache[cKey(question)] = ans;
+    cache[cKey(cacheKey)] = ans;
     const keys = Object.keys(cache);
     if (keys.length > 300) delete cache[keys[0]];
     localStorage.setItem('amCache', JSON.stringify(cache));
