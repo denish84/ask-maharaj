@@ -103,14 +103,18 @@ tailwind.config = {
   .chip:hover  { background: rgba(232,131,42,.2); border-color: rgba(232,131,42,.42); color: #f5a623; }
   .chip:active { transform: scale(.96); }
 
-  /* ── Textarea ── */
-  textarea {
+  /* ── Question textarea (#q) ──
+     Tailwind Preflight sets padding:0 + resize:vertical on textarea with the same
+     specificity as a bare `textarea` rule but loads later — use #id to win cascade. */
+  #q {
     width: 100%;
     display: block;
+    box-sizing: border-box;
     background: rgba(0,0,0,.32);
     border: 1px solid rgba(232,131,42,.22);
     border-radius: 12px;
-    padding: 14px 16px;
+    padding: 16px 18px;
+    margin: 0;
     font-family: 'Noto Serif Gujarati', 'Crimson Pro', Georgia, serif;
     font-size: 15px;
     line-height: 1.5;
@@ -120,22 +124,24 @@ tailwind.config = {
     outline: none;
     transition: border-color .2s, box-shadow .2s;
     -webkit-font-smoothing: antialiased;
+    -webkit-appearance: none;
+    appearance: none;
   }
-  textarea::placeholder {
+  #q::placeholder {
     color: rgba(253,246,236,.28);
     font-style: italic;
     font-family: 'Noto Serif Gujarati', 'Crimson Pro', Georgia, serif;
     line-height: 1.5;
     opacity: 1;
   }
-  textarea::-webkit-input-placeholder {
+  #q::-webkit-input-placeholder {
     line-height: 1.5;
   }
-  textarea::-moz-placeholder {
+  #q::-moz-placeholder {
     line-height: 1.5;
     opacity: 1;
   }
-  textarea:focus {
+  #q:focus {
     border-color: rgba(232,131,42,.52);
     box-shadow: 0 0 0 2px rgba(232,131,42,.14), 0 0 18px rgba(232,131,42,.25);
   }
