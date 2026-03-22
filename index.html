@@ -583,8 +583,19 @@ function setLang(lang) {
   if (!btn.disabled) btn.textContent = s.btnText;
 
   document.getElementById('chipsWrap').innerHTML = s.chips
-    .map(c => `<button type="button" class="chip" onclick="setQ(${JSON.stringify(c.q)})">${c.label}</button>`)
+    .map(c => {
+      const qAttr = String(c.q).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      const labelHtml = String(c.label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      return `<span class="chip" data-q="${qAttr}">${labelHtml}</span>`;
+    })
     .join('');
+
+  document.querySelectorAll('#chipsWrap .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.getElementById('q').value = chip.dataset.q;
+      document.getElementById('q').focus();
+    });
+  });
 
   document.getElementById('langEn').classList.toggle('lang-active', lang === 'en');
   document.getElementById('langGu').classList.toggle('lang-active', lang === 'gu');
