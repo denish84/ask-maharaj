@@ -900,24 +900,28 @@ End with:
 
 Question: ${question}`;
 
-      const body = new URLSearchParams();
-      body.append('prompt', finalPrompt);
-      body.append('model', model);
-
-      const res = await fetch(`https://api.straico.com/v0/rag/${ragIds[0]}/prompt`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + key },
-        body: body
+      const ragPromises = ragIds.map(ragId => {
+        const body = new URLSearchParams();
+        body.append('prompt', finalPrompt);
+        body.append('model', model);
+        return fetch(`https://api.straico.com/v0/rag/${ragId}/prompt`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + key },
+          body: body
+        }).then(r => r.json()).catch(() => null);
       });
 
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.message || e.error || 'RAG API error ' + res.status + '. Check your key and RAG ID.');
+      const results = await Promise.all(ragPromises);
+      for (const d of results) {
+        const candidate = d?.data?.answer || d?.response?.answer || '';
+        if (candidate && !candidate.toLowerCase().includes('not directly mentioned')) {
+          ans = candidate;
+          coins = (coins || 0) + (d?.data?.coins_used || 0);
+          break;
+        }
       }
-
-      const d = await res.json();
-      ans = d?.data?.answer || d?.response?.answer || '';
-      coins = d?.data?.coins_used || 0;
+      if (!ans) ans = results[0]?.data?.answer || 'This is not directly mentioned in the provided Vachanamrut. Jai Swaminarayan 🙏';
+      coins = results.reduce((sum, d) => sum + (d?.data?.coins_used || 0), 0);
 
     } else {
       // Standard prompt completion fallback (no RAG)
