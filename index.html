@@ -227,6 +227,30 @@ tailwind.config = {
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(232,131,42,.28); border-radius: 2px; }
+
+  /* ── Language toggle pills ── */
+  .lang-pill {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(232,131,42,.28);
+    background: rgba(232,131,42,.06);
+    color: rgba(232,220,200,.62);
+    font-family: 'Noto Serif Gujarati', 'Crimson Pro', serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s ease;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .lang-pill:hover { background: rgba(232,131,42,.14); color: rgba(245,200,155,.9); }
+  .lang-pill.lang-active {
+    background: rgba(232,131,42,.22);
+    border-color: rgba(232,131,42,.7);
+    color: #f5a623;
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(232,131,42,.22);
+  }
 </style>
 </head>
 <body class="bg-[#0f0600] text-[#fdf6ec] overflow-x-hidden overflow-y-auto" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-top:max(env(safe-area-inset-top,0),24px);padding-bottom:max(env(safe-area-inset-bottom,0),24px)">
@@ -297,10 +321,16 @@ tailwind.config = {
   </header>
 
   <!-- Divider -->
-  <div class="flex items-center gap-3 mb-10 opacity-30" style="animation:fadeIn .9s ease .1s both">
+  <div class="flex items-center gap-3 mb-6 opacity-30" style="animation:fadeIn .9s ease .1s both">
     <div class="flex-1 h-px" style="background:linear-gradient(to right,transparent,#e8832a)"></div>
     <span style="color:#e8832a;font-size:11px;letter-spacing:.2em">✦</span>
     <div class="flex-1 h-px" style="background:linear-gradient(to left,transparent,#e8832a)"></div>
+  </div>
+
+  <!-- ── Language toggle ── -->
+  <div class="flex gap-3 mb-8" style="animation:fadeUp .7s ease .14s both">
+    <button type="button" id="langEn" class="lang-pill lang-active" onclick="setLang('en')">🇬🇧 English</button>
+    <button type="button" id="langGu" class="lang-pill" onclick="setLang('gu')">🇮🇳 ગુજરાતી</button>
   </div>
 
   <!-- ── Question card (glass) ── -->
@@ -315,13 +345,13 @@ tailwind.config = {
     </div>
 
     <textarea id="q" rows="4" dir="ltr"
-      placeholder="Maharaj ne prashn pucho... 🙏"></textarea>
+      placeholder="Ask Maharaj anything... 🙏"></textarea>
 
     <!-- Question chips -->
-    <div class="flex flex-wrap gap-3 mt-6">
-      <button type="button" class="chip" onclick="setQ('મનની શાંતિ કેવી રીતે મેળવવી?')">મનની શાંતિ</button>
+    <div id="chipsWrap" class="flex flex-wrap gap-3 mt-6">
+      <button type="button" class="chip" onclick="setQ('What does Maharaj say about achieving peace of mind?')">Peace of mind</button>
       <button type="button" class="chip" onclick="setQ('How to control anger according to Maharaj?')">Anger control</button>
-      <button type="button" class="chip" onclick="setQ('Ekadashi nu mahatva shu che?')">એકાદશી નું મહત્વ</button>
+      <button type="button" class="chip" onclick="setQ('What is the importance of Ekadashi?')">Ekadashi mahatva</button>
       <button type="button" class="chip" onclick="setQ('What is Maya according to Vachanamrut?')">What is Maya?</button>
     </div>
 
@@ -453,6 +483,7 @@ let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}'
 window.onload = () => {
   loadModels(STRAICO_KEY);
   renderStats();
+  setLang(localStorage.getItem('amLang') || 'en');
 };
 
 async function loadModels(key) {
@@ -514,6 +545,51 @@ function setQ(t) { document.getElementById('q').value = t; }
 
 function renderStats() {}
 
+/* ── Language toggle ── */
+const LANG_STRINGS = {
+  en: {
+    placeholder: 'Ask Maharaj anything... 🙏',
+    btnText: '🙏 \u00a0Maharaj ne Pucho',
+    chips: [
+      { label: 'Peace of mind',    q: 'What does Maharaj say about achieving peace of mind?' },
+      { label: 'Anger control',    q: 'How to control anger according to Maharaj?' },
+      { label: 'Ekadashi mahatva', q: 'What is the importance of Ekadashi?' },
+      { label: 'What is Maya?',    q: 'What is Maya according to Vachanamrut?' },
+    ],
+    limitMsg: '🙏 Daily limit of 3 questions reached. Come back tomorrow. Jai Swaminarayan 🙏',
+    langSuffix: 'IMPORTANT: You must answer in English only.',
+  },
+  gu: {
+    placeholder: 'મહારાજને પ્રશ્ન પૂછો... 🙏',
+    btnText: 'મહારાજને પૂછો 🙏',
+    chips: [
+      { label: 'મનની શાંતિ',         q: 'મનની શાંતિ કેવી રીતે મેળવવી?' },
+      { label: 'ક્રોધ પર નિયંત્રણ', q: 'ક્રોધ પર કેવી રીતે નિયંત્રણ કરવું?' },
+      { label: 'એકાદશી નું મહત્વ',   q: 'એકાદશી નું મહત્વ શું છે?' },
+      { label: 'માયા શું છે?',        q: 'માયા શું છે?' },
+    ],
+    limitMsg: '🙏 આજની ૩ પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏',
+    langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
+  }
+};
+
+function setLang(lang) {
+  localStorage.setItem('amLang', lang);
+  const s = LANG_STRINGS[lang];
+
+  document.getElementById('q').placeholder = s.placeholder;
+
+  const btn = document.getElementById('askBtn');
+  if (!btn.disabled) btn.textContent = s.btnText;
+
+  document.getElementById('chipsWrap').innerHTML = s.chips
+    .map(c => `<button type="button" class="chip" onclick="setQ(${JSON.stringify(c.q)})">${c.label}</button>`)
+    .join('');
+
+  document.getElementById('langEn').classList.toggle('lang-active', lang === 'en');
+  document.getElementById('langGu').classList.toggle('lang-active', lang === 'gu');
+}
+
 function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0,120); }
 
 async function ask() {
@@ -542,8 +618,10 @@ async function ask() {
     limitData.count = 0;
   }
 
+  const lang = localStorage.getItem('amLang') || 'en';
+
   if (limitData.count >= 3) {
-    showErr('🙏 Aajni 3 prashn ni limit puri thai. Kal pachi aavjo. Jai Swaminarayan 🙏');
+    showErr(LANG_STRINGS[lang].limitMsg);
     return;
   }
 
@@ -554,7 +632,7 @@ async function ask() {
   try {
     let ans = '', coins = 0;
 
-    const fullMessage = SYSTEM_PROMPT + '\n\n[USER QUESTION]\n' + question;
+    const fullMessage = SYSTEM_PROMPT + '\n\n' + LANG_STRINGS[lang].langSuffix + '\n\n[USER QUESTION]\n' + question;
 
     const res = await fetch('https://api.straico.com/v1/prompt/completion', {
       method: 'POST',
