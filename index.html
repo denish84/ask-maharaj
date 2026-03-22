@@ -519,7 +519,7 @@ function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0
 async function ask() {
   const key      = STRAICO_KEY.trim();
   const question = document.getElementById('q').value.trim();
-  const model    = document.getElementById('mdl').value;
+  const model    = 'deepseek/deepseek-chat-v3-0324';
   const cacheKey = question;
 
   if (!key)      { showErr('Please set STRAICO_KEY in the script.'); return; }
@@ -581,6 +581,7 @@ async function ask() {
 
     limitData.count++;
     localStorage.setItem('amDailyLimit', JSON.stringify(limitData));
+    console.log('Limit saved:', JSON.stringify(limitData));
 
     // Save to cache
     cache[cKey(cacheKey)] = ans;
