@@ -67,6 +67,7 @@ tailwind.config = {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
+  @keyframes spin { to { transform: rotate(360deg); } }
   /* Scroll-unroll for answer card */
   @keyframes scrollOpen {
     from { opacity: 0; transform: translateY(14px) scaleY(.82); transform-origin: top; }
@@ -495,6 +496,7 @@ window.onload = () => {
   loadModels(STRAICO_KEY);
   renderStats();
   setLang(localStorage.getItem('amLang') || 'en');
+  renderRecentQuestions();
 };
 
 async function loadModels(key) {
@@ -661,10 +663,10 @@ async function ask() {
 
     const fullMessage = SYSTEM_PROMPT + '\n\n' + LANG_STRINGS[lang].langSuffix + '\n\n[USER QUESTION]\n' + question;
 
-    const res = await fetch('https://api.straico.com/v1/prompt/completion', {
+    const res = await fetch('/api/ask', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({ models: [model], message: fullMessage })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: fullMessage })
     });
 
     if (!res.ok) {
@@ -673,7 +675,6 @@ async function ask() {
     }
 
     const d = await res.json();
-    console.log('Straico response:', JSON.stringify(d));
     const completions = d?.data?.completions;
     if (completions) {
       const modelKey = Object.keys(completions)[0];
@@ -712,11 +713,17 @@ function setLoad(on) {
   b.disabled = on;
   const lang = localStorage.getItem('amLang') || 'en';
   if (on) {
-    b.textContent = lang === 'gu'
-      ? '📿 મહારાજ સાંભળી રહ્યા છે...'
-      : '📿 Seeking Maharaj\'s wisdom...';
+    b.innerHTML = `
+      <span style="display:inline-flex;align-items:center;gap:10px;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+             style="animation:spin .8s linear infinite">
+          <circle cx="12" cy="12" r="10" stroke-opacity=".25"/>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+        </svg>
+        ${lang === 'gu' ? 'મહારાજ સાંભળી રહ્યા છે...' : "Seeking Maharaj's wisdom..."}
+      </span>`;
   } else {
-    b.textContent = '🙏  Maharaj ne Pucho';
+    b.textContent = lang === 'gu' ? 'મહારાજને પૂછો 🙏' : '🙏  Maharaj ne Pucho';
   }
 }
 
@@ -727,6 +734,10 @@ function mdToHtml(text) {
 }
 
 function showAns(text, cached, coins) {
+  const question = document.getElementById('q').value.trim();
+  const qEcho = document.getElementById('qEcho');
+  if (qEcho) qEcho.textContent = question;
+  if (question && !cached) saveRecentQuestion(question, text);
   document.getElementById('ansText').innerHTML = mdToHtml(text);
   document.getElementById('cTag').style.display = 'inline-block';
   const c = document.getElementById('ansCard');
@@ -789,24 +800,6 @@ function renderRecentQuestions() {
       onmouseover="this.style.color='#f5a623'" onmouseout="this.style.color='rgba(232,220,200,.55)'">↩ ${item.q.slice(0,65)}${item.q.length>65?'…':''}</button>`
   ).join('');
 }
-renderRecentQuestions();
-
-// Extend showAns to set question echo and save recent
-const _origShowAns = showAns;
-showAns = function(text, cached, coins) {
-  const question = document.getElementById('q').value.trim();
-  const qEcho = document.getElementById('qEcho');
-  if (qEcho) qEcho.textContent = question;
-  if (question && !cached) saveRecentQuestion(question, text);
-  _origShowAns.call(this, text, cached, coins);
-};
-
-// Extend window.onload to render recent questions after original runs
-const _origOnLoad = window.onload;
-window.onload = function() {
-  if (_origOnLoad) _origOnLoad();
-  renderRecentQuestions();
-};
 </script>
 </body>
 </html>
