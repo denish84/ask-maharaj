@@ -459,8 +459,6 @@ tailwind.config = {
 /* ═══════════════════════════════════════════════════════════════
    ORIGINAL JS — preserved exactly
 ═══════════════════════════════════════════════════════════════ */
-const STRAICO_KEY = '7T-DDtwpsEzmeJifqThjw728c0L0JYrzclziqe5DC2hVLzWtkRg';
-
 const SYSTEM_PROMPT = `You are a humble, wise, and deeply knowledgeable Satsang guide. Your purpose is to help modern devotees overcome daily life challenges by applying the pure teachings of Bhagwan Swaminarayan, specifically from the Vachanamrut and Swamini Vato.
 
 Core Directives:
@@ -559,12 +557,10 @@ function setLang(lang) {
 function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0,120); }
 
 async function ask() {
-  const key      = STRAICO_KEY.trim();
   const question = document.getElementById('q').value.trim();
   const model    = 'deepseek/deepseek-chat-v3-0324';
   const cacheKey = question;
 
-  if (!key)      { showErr('Please set STRAICO_KEY in the script.'); return; }
   if (!question) { showErr('Please type a question first 🙏'); return; }
 
   // Cache hit — free!
