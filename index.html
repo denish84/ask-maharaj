@@ -132,6 +132,8 @@ tailwind.config = {
     color: #fdf6ec;
     text-align: start;
     resize: none;
+    min-height: 90px;
+    overflow-y: hidden;
     outline: none;
     transition: border-color .2s, box-shadow .2s;
     -webkit-font-smoothing: antialiased;
@@ -453,13 +455,6 @@ tailwind.config = {
   })();
 </script>
 
-<!-- ── Hidden JS-compatibility elements ── -->
-<select id="mdl" style="display:none">
-  <option value="deepseek/deepseek-chat-v3-0324" selected>DeepSeek V3</option>
-</select>
-<span id="mdlStatus" style="display:none"></span>
-<span id="cLbl"       style="display:none"></span>
-
 <script>
 /* ═══════════════════════════════════════════════════════════════
    ORIGINAL JS — preserved exactly
@@ -493,70 +488,17 @@ let cache = JSON.parse(localStorage.getItem('amCache') || '{}');
 let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}');
 
 window.onload = () => {
-  loadModels(STRAICO_KEY);
-  renderStats();
   setLang(localStorage.getItem('amLang') || 'en');
   renderRecentQuestions();
 };
 
-async function loadModels(key) {
-  const sel = document.getElementById('mdl');
-  const status = document.getElementById('mdlStatus');
-  status.textContent = 'Loading models…';
-  try {
-    const res = await fetch('https://api.straico.com/v0/models', {
-      headers: { 'Authorization': 'Bearer ' + key }
-    });
-    if (!res.ok) throw new Error('Could not load models');
-    const data = await res.json();
-    const models = data?.data || [];
-    if (!models.length) throw new Error('No models returned');
-
-    // Preferred cheap models to show first
-    const preferred = ['deepseek','nova','llama','gemini','gemma','mistral','qwen','grok'];
-    const sorted = [...models].sort((a, b) => {
-      const ai = preferred.findIndex(p => a.model.toLowerCase().includes(p));
-      const bi = preferred.findIndex(p => b.model.toLowerCase().includes(p));
-      const av = ai === -1 ? 99 : ai, bv = bi === -1 ? 99 : bi;
-      if (av !== bv) return av - bv;
-      return (a.pricing?.coins || 0) - (b.pricing?.coins || 0);
-    });
-
-    sel.innerHTML = '';
-    sorted.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.model;
-      const coins = m.pricing?.coins || 0;
-      const words = m.pricing?.words || 100;
-      const rate = (coins / words * 100).toFixed(1);
-      opt.dataset.c = rate;
-      opt.textContent = m.name + ' — ' + rate + ' coins/100w';
-      // Pre-select DeepSeek V3
-      if (m.model.toLowerCase().includes('deepseek-chat-v3') || m.model.toLowerCase().includes('deepseek-v3')) {
-        opt.selected = true;
-        opt.textContent += ' ★';
-      }
-      sel.appendChild(opt);
-    });
-
-    status.textContent = models.length + ' models loaded ✓';
-    updateCost();
-    setTimeout(() => { status.textContent = ''; }, 3000);
-  } catch(e) {
-    status.textContent = '⚠ ' + e.message;
-  }
-}
-
-function updateCost() {
-  const s = document.getElementById('mdl');
-  const opt = s.options[s.selectedIndex];
-  const c = opt?.dataset?.c || '?';
-  document.getElementById('cLbl').textContent = c !== '?' ? '~' + c + ' coin/100w' : '';
-}
+const qEl = document.getElementById('q');
+qEl.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 220) + 'px';
+});
 
 function setQ(t) { document.getElementById('q').value = t; }
-
-function renderStats() {}
 
 /* ── Language toggle ── */
 const LANG_STRINGS = {
@@ -631,7 +573,7 @@ async function ask() {
     showAns(hit, true, 0);
     stats.a++; stats.c++;
     localStorage.setItem('amStats', JSON.stringify(stats));
-    renderStats(); return;
+    return;
   }
 
   const sessionCount = parseInt(sessionStorage.getItem('amSession') || '0');
@@ -669,6 +611,12 @@ async function ask() {
       body: JSON.stringify({ message: fullMessage })
     });
 
+    if (res.status === 429) {
+      const lang = localStorage.getItem('amLang') || 'en';
+      showErr(LANG_STRINGS[lang].limitMsg);
+      return;
+    }
+
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
       throw new Error(e.message || e.error || 'API error ' + res.status + '. Check your key.');
@@ -699,7 +647,6 @@ async function ask() {
     stats.a++;
     stats.co = (parseFloat(stats.co) + parseFloat(coins)).toFixed(2);
     localStorage.setItem('amStats', JSON.stringify(stats));
-    renderStats();
 
   } catch(err) {
     showErr('❌ ' + err.message);
@@ -729,8 +676,21 @@ function setLoad(on) {
 
 function mdToHtml(text) {
   return String(text)
+    // headings → styled paragraph
+    .replace(/^#{1,3}\s+(.+)$/gm, '<p style="font-weight:600;margin:10px 0 4px;color:#f5a623">$1</p>')
+    // bold
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // italic
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // bullet lists
+    .replace(/^[-•]\s+(.+)$/gm, '<li style="margin:4px 0;padding-left:4px">$1</li>')
+    // wrap consecutive <li> in <ul>
+    .replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:8px 0;padding-left:18px;list-style:disc">$&</ul>')
+    // horizontal rules
+    .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid rgba(232,131,42,.2);margin:12px 0">')
+    // double newline → paragraph break
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
 }
 
 function showAns(text, cached, coins) {
