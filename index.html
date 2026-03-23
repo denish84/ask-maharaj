@@ -439,8 +439,8 @@ tailwind.config = {
 </div><!-- /main -->
 
 <!-- Desktop "best on mobile" hint — hidden on ≤520px -->
-<div class="fixed bottom-6 left-1/2 z-50 pointer-events-none"
-     style="transform:translateX(-50%);display:none" id="desktopHint">
+<div class="relative z-10 pointer-events-none mt-4 flex justify-center"
+     style="display:none" id="desktopHint">
   <div class="glass rounded-full px-5 py-2.5 text-sm italic"
        style="color:rgba(232,220,200,.72);border-color:rgba(232,131,42,.2);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)">
     📱 Best experienced on mobile
@@ -449,7 +449,7 @@ tailwind.config = {
 <script>
   (function() {
     var hint = document.getElementById('desktopHint');
-    function checkWidth() { hint.style.display = window.innerWidth > 520 ? 'block' : 'none'; }
+    function checkWidth() { hint.style.display = window.innerWidth > 520 ? 'flex' : 'none'; }
     checkWidth();
     window.addEventListener('resize', checkWidth);
   })();
