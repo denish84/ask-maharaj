@@ -37,7 +37,7 @@ tailwind.config = {
     font-style: italic;
     text-align: center;
     line-height: 1.45;
-    color: rgba(253, 246, 236, 0.72);
+    color: rgba(253, 246, 236, 0.85);
   }
 
   /* ── Keyframes ── */
@@ -539,7 +539,7 @@ function setLang(lang) {
     .map(c => {
       const qAttr = String(c.q).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
       const labelHtml = String(c.label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-      return `<span class="chip" data-q="${qAttr}">${labelHtml}</span>`;
+      return `<span class="chip" data-q="${qAttr}" role="button" tabindex="0" aria-label="Ask: ${labelHtml}">${labelHtml}</span>`;
     })
     .join('');
 
@@ -645,7 +645,11 @@ async function ask() {
     localStorage.setItem('amStats', JSON.stringify(stats));
 
   } catch(err) {
-    showErr('❌ ' + err.message);
+    const lang = localStorage.getItem('amLang') || 'en';
+    const msg = lang === 'gu'
+      ? '📿 અત્યારે ઘણા ભક્તો પ્રશ્ન પૂછી રહ્યા છે. થોડીવાર પછી ફરી પ્રયત્ન કરો. 🙏'
+      : '📿 Maharaj\'s wisdom is being sought by many right now. Please try again in a moment. 🙏';
+    showErr(msg);
   } finally {
     setLoad(false);
   }
@@ -698,7 +702,7 @@ function showAns(text, cached, coins) {
   document.getElementById('cTag').style.display = 'inline-block';
   const c = document.getElementById('ansCard');
   c.classList.add('show');
-  c.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  setTimeout(() => c.scrollIntoView({ behavior: 'smooth', block: 'start' }), 680);
 }
 
 function hideAns() { document.getElementById('ansCard').classList.remove('show'); }
