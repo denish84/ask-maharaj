@@ -1,9 +1,21 @@
 // Keep this outside the handler so it persists while the server is "warm"
 const rateLimitMap = new Map();
+const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
+const ALLOWED_ORIGINS = new Set([
+  'https://ask-maharaj.vercel.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+]);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Origin allowlist check (same-origin and trusted dev/prod origins)
+  const origin = req.headers.origin || '';
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
+    return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
+  }
 
   const today = new Date().toDateString();
   
@@ -20,17 +32,28 @@ export default async function handler(req, res) {
     req.headers['x-forwarded-for']?.split(',')[0].trim() ||
     req.socket.remoteAddress ||
     'unknown';
+
+  // 2. Short burst limiter: max 5 requests per 60 seconds per IP
+  const now = Date.now();
+  const minuteAgo = now - 60000;
+  const burstKey = `${ip}_burst`;
+  const recentHits = (burstLimitMap.get(burstKey) || []).filter(ts => ts > minuteAgo);
+  if (recentHits.length >= 5) {
+    burstLimitMap.set(burstKey, recentHits);
+    return res.status(429).json({ error: 'RATE_LIMITED' });
+  }
+  recentHits.push(now);
+  burstLimitMap.set(burstKey, recentHits);
     
-  // 2. The Free "Good Enough" Rate Limit
+  // 3. Daily limiter
   const key = `${ip}_${today}`;
   const count = rateLimitMap.get(key) || 0;
   
   if (count >= 3) {
     return res.status(429).json({ error: 'DAILY_LIMIT' });
   }
-  rateLimitMap.set(key, count + 1);
 
-  // 3. Backend Payload Limit (Important for Cost)
+  // 4. Backend Payload Limit (Important for Cost)
   const { message } = req.body;
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return res.status(400).json({ error: 'Invalid message' });
@@ -40,10 +63,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Message too long' });
   }
 
-  // 4. The Request with Your 10s AbortController
+  // 5. The Request with Your 10s AbortController
+  let timeout;
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    timeout = setTimeout(() => controller.abort(), 10000);
     
     const response = await fetch('https://api.straico.com/v1/prompt/completion', {
       method: 'POST',
@@ -60,21 +84,23 @@ export default async function handler(req, res) {
       signal: controller.signal
     });
     
-    clearTimeout(timeout);
-    
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       return res.status(response.status).json({ error: err.message || 'Upstream error' });
     }
     
     const data = await response.json();
+    // Count only successful completions toward daily quota
+    rateLimitMap.set(key, count + 1);
     return res.status(200).json(data);
     
   } catch (err) {
-    // 5. Handling Timeout Gracefully
+    // 6. Handling Timeout Gracefully
     if (err.name === 'AbortError') {
       return res.status(504).json({ error: 'AI took too long to respond. Please try again.' });
     }
     return res.status(500).json({ error: 'Server error' });
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }

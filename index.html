@@ -609,7 +609,14 @@ async function ask() {
 
     if (res.status === 429) {
       const lang = localStorage.getItem('amLang') || 'en';
-      showErr(LANG_STRINGS[lang].limitMsg);
+      const e429 = await res.json().catch(() => ({}));
+      if (e429?.error === 'RATE_LIMITED') {
+        showErr(lang === 'gu'
+          ? '🙏 બહુ ઝડપથી પ્રશ્નો પૂછાયા છે. કૃપા કરીને ૧ મિનિટ પછી ફરી પ્રયાસ કરો.'
+          : '🙏 Too many requests right now. Please try again in 1 minute.');
+      } else {
+        showErr(LANG_STRINGS[lang].limitMsg);
+      }
       return;
     }
 
