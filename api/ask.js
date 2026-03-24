@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         models: ['deepseek/deepseek-chat-v3-0324'],
         message,
         // Optional but recommended: Add max_tokens to prevent the AI from generating an entire book and costing you credits
-        max_tokens: 500 
+        max_tokens: 300 
       }),
       signal: controller.signal
     });
