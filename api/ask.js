@@ -199,8 +199,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         models: ['deepseek/deepseek-chat-v3-0324'],
         message: safeMessage,
-        // Balanced cap for richer spiritual guidance without overlong replies.
-        max_tokens: 700
+        // Gujarati uses more tokens per word than English; 700 often truncates before the closing line.
+        max_tokens: lang === 'gu' ? 1000 : 700
       }),
       signal: controller.signal
     });

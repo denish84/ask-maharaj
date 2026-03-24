@@ -634,6 +634,11 @@ async function ask() {
       const modelData = completions[modelKey];
       ans   = modelData?.completion?.choices?.[0]?.message?.content || '';
       coins = modelData?.price?.total || 0;
+      console.info('[Ask Maharaj]', {
+        model: modelKey,
+        coins: Number(coins) || 0,
+        price: modelData?.price ?? null
+      });
     }
 
     if (!ans) throw new Error('Empty response. Try again or switch model.');
