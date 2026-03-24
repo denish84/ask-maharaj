@@ -77,11 +77,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Message too long' });
   }
 
-  // 5. The Request with Your 10s AbortController
+  // 5. Upstream request timeout tuned for real-world latency on Vercel
   let timeout;
   try {
     const controller = new AbortController();
-    timeout = setTimeout(() => controller.abort(), 10000);
+    timeout = setTimeout(() => controller.abort(), 25000);
     
     const response = await fetch('https://api.straico.com/v1/prompt/completion', {
       method: 'POST',
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         models: ['deepseek/deepseek-chat-v3-0324'],
         message,
-        // Optional but recommended: Add max_tokens to prevent the AI from generating an entire book and costing you credits
+        // Keep output bounded for cost and faster responses.
         max_tokens: 300 
       }),
       signal: controller.signal
