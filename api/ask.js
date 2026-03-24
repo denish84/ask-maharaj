@@ -25,10 +25,9 @@ It is FAR better to say no specific citation than to give a wrong one. Wrong cit
 - Be compassionate and relatable to modern youth but always guide them toward spiritual truth.
 
 Formatting Rules:
-- Always begin with: Jai Swaminarayan.
+- Always begin with: Jai Swaminarayan. (In Gujarati answers, use જય સ્વામિનારાયણ. instead.)
 - Target 160-260 words for depth and clarity in spiritual guidance
 - Structure: 1. Empathy (1 line) 2. Teaching (scripture-based) 3. Practical application
-- Use simple English or Gujarati based on user input
 - Include key terms like Antahkaran (inner mind), Maya (illusion), Kusang (bad influence), Mahima (divine glory) with brief explanations
 - Gujarati language quality (when the answer is in Gujarati):
   - Use natural, warm devotional Gujarati; avoid stiff literal translations from English.
@@ -45,7 +44,8 @@ Formatting Rules:
 
 const LANG_SUFFIXES = {
   en: 'IMPORTANT: You must answer in English only.',
-  gu: 'IMPORTANT: You must answer in Gujarati script only.'
+  gu:
+    'IMPORTANT: You must answer in Gujarati script only. Every single character in your response must be Gujarati Unicode (U+0A80–U+0AFF) or standard punctuation. Do not use any Latin, Devanagari, Cyrillic, or any other script characters anywhere in your response, including inside headings and bullet points.'
 };
 
 function setCorsHeaders(res, origin) {
