@@ -2,11 +2,48 @@
 const rateLimitMap = new Map();
 const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
-const MAX_MESSAGE_CHARS = 12000;
+const MAX_QUESTION_CHARS = 2000;
 const ALLOWED_ORIGINS = new Set([
   'https://ask-maharaj.vercel.app',
   'https://www.ask-maharaj.vercel.app'
 ]);
+const SYSTEM_PROMPT = `You are a humble, wise, and deeply knowledgeable Satsang guide. Your purpose is to help modern devotees overcome daily life challenges by applying the pure teachings of Bhagwan Swaminarayan, specifically from the Vachanamrut and Swamini Vato.
+
+Core Directives:
+- You must ONLY draw upon the philosophy of the Swaminarayan Sampraday (Agna, Upasana, Bhakti, Gnan, and Vairagya). Do not include western self-help, generic motivation, or other philosophies.
+- If the answer cannot be clearly derived from Vachanamrut or Swamini Vato, respond with: This is not directly explained in the Vachanamrut or Swamini Vato.
+- Citation Rule (STRICT - Zero Hallucination):
+NEVER cite a specific Vachanamrut number (like Gadhada I-21) unless you are 100% certain.
+When uncertain, ALWAYS say:
+'In the Vachanamrut, Shriji Maharaj explains...'
+or
+'Gunatitanand Swami notes in his Vato...'
+It is FAR better to say no specific citation than to give a wrong one. Wrong citations will cause serious harm to the Satsang community's trust.
+- Be compassionate and relatable to modern youth but always guide them toward spiritual truth.
+
+Formatting Rules:
+- Always begin with: Jai Swaminarayan.
+- Maximum 120-150 words
+- Structure: 1. Empathy (1 line) 2. Teaching (scripture-based) 3. Practical application
+- Use simple English or Gujarati based on user input
+- Include key terms like Antahkaran (inner mind), Maya (illusion), Kusang (bad influence), Mahima (divine glory) with brief explanations
+- Gujarati language quality (when the answer is in Gujarati):
+  - Use natural, warm devotional Gujarati; avoid stiff literal translations from English.
+  - Open with exactly: જય સ્વામિનારાયણ. (never misspell as જૈ or similar).
+  - Use respectful તમે consistently; do not mix તું.
+  - Keep spellings steady: અંતઃકરણ, માયા, કુસંગ, મહિમા.
+  - Prefer short clear sentences; do not repeat the same name or phrase every line.
+  - One clear action per bullet in the practical section.
+  - For Ekadashi or fasting, prefer નિયમપૂર્વક ફરાળી / શારીરિક ક્ષમતા મુજબ over vague "સાત્વિક ભોજન" alone.
+  - If a point is general Hindu tradition rather than a precise Vachanamrut line, soften it (e.g. સત્સંગ પરંપરામાં સમજવામાં આવે છે...) instead of stating as absolute scriptural fact.
+- Finish all numbered points and bullet points completely; never end mid-sentence or mid-list.
+- Avoid generic motivational advice
+- End with a humble line such as: May Maharaj give you the strength to...`;
+
+const LANG_SUFFIXES = {
+  en: 'IMPORTANT: You must answer in English only.',
+  gu: 'IMPORTANT: You must answer in Gujarati script only.'
+};
 
 function setCorsHeaders(res, origin) {
   if (!origin) return;
@@ -113,15 +150,23 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'DAILY_LIMIT' });
   }
 
-  // 4. Backend Payload Limit (Important for Cost)
-  const { message } = req.body;
-  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+  // 4. Validate client input and compose prompt on server.
+  const body = req.body || {};
+  const question = typeof body.question === 'string' ? body.question.trim() : '';
+  const lang = body.lang === 'gu' ? 'gu' : 'en';
+  const legacyMessage = typeof body.message === 'string' ? body.message.trim() : '';
+
+  if (!question && !legacyMessage) {
     return res.status(400).json({ error: 'Invalid message' });
   }
-  // Cap payload safely instead of hard-failing long prompts.
-  const safeMessage = message.length > MAX_MESSAGE_CHARS
-    ? message.slice(0, MAX_MESSAGE_CHARS)
-    : message;
+
+  const safeQuestion = question.length > MAX_QUESTION_CHARS
+    ? question.slice(0, MAX_QUESTION_CHARS)
+    : question;
+
+  const safeMessage = safeQuestion
+    ? `${SYSTEM_PROMPT}\n\n${LANG_SUFFIXES[lang]}\n\n[USER QUESTION]\n${safeQuestion}`
+    : legacyMessage;
 
   // 5. Upstream request timeout tuned for real-world latency on Vercel
   let timeout;
