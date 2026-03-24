@@ -92,8 +92,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         models: ['deepseek/deepseek-chat-v3-0324'],
         message,
-        // Keep output bounded for cost and faster responses.
-        max_tokens: 300 
+        // Keep output bounded while avoiding truncation in Gujarati responses.
+        max_tokens: 550
       }),
       signal: controller.signal
     });
