@@ -2,6 +2,7 @@
 const rateLimitMap = new Map();
 const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
+const MAX_MESSAGE_CHARS = 12000;
 const ALLOWED_ORIGINS = new Set([
   'https://ask-maharaj.vercel.app',
   'https://www.ask-maharaj.vercel.app'
@@ -117,10 +118,10 @@ export default async function handler(req, res) {
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return res.status(400).json({ error: 'Invalid message' });
   }
-  // Max size set to ~2000 chars (system prompt + user input)
-  if (message.length > 2000) {
-    return res.status(400).json({ error: 'Message too long' });
-  }
+  // Cap payload safely instead of hard-failing long prompts.
+  const safeMessage = message.length > MAX_MESSAGE_CHARS
+    ? message.slice(0, MAX_MESSAGE_CHARS)
+    : message;
 
   // 5. Upstream request timeout tuned for real-world latency on Vercel
   let timeout;
@@ -136,7 +137,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         models: ['deepseek/deepseek-chat-v3-0324'],
-        message,
+        message: safeMessage,
         // Keep output bounded while avoiding truncation in Gujarati responses.
         max_tokens: 550
       }),
