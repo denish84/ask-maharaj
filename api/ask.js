@@ -45,6 +45,8 @@ function isAllowedOrigin(origin, req) {
 
 export default async function handler(req, res) {
   const origin = req.headers.origin || '';
+  const secFetchSite = (req.headers['sec-fetch-site'] || '').toLowerCase();
+  const sameOriginFetch = secFetchSite === 'same-origin' || secFetchSite === 'none';
 
   if (req.method === 'OPTIONS') {
     if (!origin || !isAllowedOrigin(origin, req)) {
@@ -56,8 +58,12 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
-  // Origin check for CSRF protection while allowing same deployed host.
-  if (origin && !isAllowedOrigin(origin, req)) {
+  // CSRF protection: allow valid Origin OR trusted same-origin fetch metadata.
+  if (origin) {
+    if (!isAllowedOrigin(origin, req)) {
+      return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
+    }
+  } else if (!sameOriginFetch) {
     return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
   }
   if (origin) setCorsHeaders(res, origin);
@@ -78,12 +84,12 @@ export default async function handler(req, res) {
     req.socket.remoteAddress ||
     'unknown';
 
-  // 2. Short burst limiter: max 5 requests per 60 seconds per IP
+  // 2. Short burst limiter: max 15 requests per 60 seconds per IP
   const now = Date.now();
   const minuteAgo = now - 60000;
   const burstKey = `${ip}_burst`;
   const recentHits = (burstLimitMap.get(burstKey) || []).filter(ts => ts > minuteAgo);
-  if (recentHits.length >= 5) {
+  if (recentHits.length >= 15) {
     burstLimitMap.set(burstKey, recentHits);
     return res.status(429).json({ error: 'RATE_LIMITED' });
   }
@@ -94,7 +100,8 @@ export default async function handler(req, res) {
   const key = `${ip}_${today}`;
   const count = rateLimitMap.get(key) || 0;
   
-  if (count >= 3) {
+  // 3. Daily limiter per IP (raised to avoid shared-network false blocking)
+  if (count >= 30) {
     return res.status(429).json({ error: 'DAILY_LIMIT' });
   }
 
