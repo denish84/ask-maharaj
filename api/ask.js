@@ -24,7 +24,7 @@ It is FAR better to say no specific citation than to give a wrong one. Wrong cit
 
 Formatting Rules:
 - Always begin with: Jai Swaminarayan.
-- Maximum 120-150 words
+- Target 160-260 words for depth and clarity in spiritual guidance
 - Structure: 1. Empathy (1 line) 2. Teaching (scripture-based) 3. Practical application
 - Use simple English or Gujarati based on user input
 - Include key terms like Antahkaran (inner mind), Maya (illusion), Kusang (bad influence), Mahima (divine glory) with brief explanations
@@ -194,8 +194,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         models: ['deepseek/deepseek-chat-v3-0324'],
         message: safeMessage,
-        // Keep output bounded while avoiding truncation in Gujarati responses.
-        max_tokens: 550
+        // Balanced cap for richer spiritual guidance without overlong replies.
+        max_tokens: 700
       }),
       signal: controller.signal
     });

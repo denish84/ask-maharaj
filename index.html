@@ -487,7 +487,7 @@ const LANG_STRINGS = {
       { label: 'Peace of mind', q: 'How to find peace of mind according to Maharaj?' },
       { label: 'Ekadashi', q: 'What is the importance of Ekadashi according to Maharaj?' },
     ],
-    limitMsg: '🙏 Daily limit of 3 questions reached. Come back tomorrow. Jai Swaminarayan 🙏',
+    limitMsg: '🙏 Daily limit of 20 questions reached. Come back tomorrow. Jai Swaminarayan 🙏',
     langSuffix: 'IMPORTANT: You must answer in English only.',
   },
   gu: {
@@ -499,7 +499,7 @@ const LANG_STRINGS = {
       { label: 'મનની શાંતિ', q: 'મનની શાંતિ કેવી રીતે મેળવવી?' },
       { label: 'એકાદશી', q: 'એકાદશી નું મહત્વ શું છે?' },
     ],
-    limitMsg: '🙏 આજની ૩ પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏',
+    limitMsg: '🙏 આજની ૨૦ પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏',
     langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
   }
 };
@@ -576,7 +576,7 @@ async function ask() {
 
   const lang = localStorage.getItem('amLang') || 'en';
 
-  if (limitData.count >= 3) {
+  if (limitData.count >= 20) {
     showErr(LANG_STRINGS[lang].limitMsg);
     return;
   }
