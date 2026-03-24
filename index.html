@@ -246,6 +246,49 @@ tailwind.config = {
     font-weight: 600;
     box-shadow: 0 0 12px rgba(232,131,42,.22);
   }
+
+  /* ── Reaction buttons ── */
+  .reaction-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: rgba(232,131,42,.07);
+    border: 1px solid rgba(232,131,42,.2);
+    border-radius: 16px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all .22s ease;
+    min-width: 72px;
+    font-family: 'Crimson Pro', serif;
+  }
+  .reaction-btn:hover {
+    background: rgba(232,131,42,.16);
+    border-color: rgba(232,131,42,.45);
+    transform: translateY(-2px);
+  }
+  .reaction-btn.selected {
+    background: rgba(232,131,42,.25);
+    border-color: rgba(232,131,42,.75);
+    box-shadow: 0 0 16px rgba(232,131,42,.25);
+    transform: translateY(-2px);
+  }
+  .reaction-btn:active { transform: scale(.95); }
+  .reaction-emoji { font-size: 22px; line-height: 1; }
+  .reaction-label-text {
+    font-size: 11px;
+    color: rgba(232,220,200,.65);
+    text-align: center;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .reaction-btn.selected .reaction-label-text { color: #f5a623; }
+  @keyframes reactionPop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.22) translateY(-3px); }
+    100% { transform: scale(1)   translateY(-2px); }
+  }
+  .reaction-btn.selected { animation: reactionPop .32s cubic-bezier(.34,1.56,.64,1) both; }
 </style>
 </head>
 <body class="bg-[#0f0600] text-[#fdf6ec] overflow-x-hidden overflow-y-auto" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-top:max(env(safe-area-inset-top,0),24px);padding-bottom:max(env(safe-area-inset-bottom,0),24px)">
@@ -414,6 +457,12 @@ tailwind.config = {
         <span class="absolute left-1/2 bottom-2 leading-none"
               aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);transform:translateX(-50%) scaleX(-1);display:block;z-index:0">❧</span>
   </div>
+
+      <div id="reactionWrap" style="display:none;margin-top:1.25rem">
+        <p id="reactionLabel" class="text-center mb-3 font-serif text-sm" style="color:rgba(232,220,200,.75)"></p>
+        <div id="reactionBtns" class="flex flex-wrap justify-center gap-3"></div>
+        <p id="reactionConfirm" class="text-center mt-3 text-sm font-serif" style="display:none;color:#f5a623"></p>
+      </div>
 
       <!-- Footer row -->
       <div class="flex justify-center items-center flex-wrap gap-3 mt-5 pt-4"
@@ -820,6 +869,134 @@ function renderRecentQuestions() {
       onmouseover="this.style.color='#f5a623'" onmouseout="this.style.color='rgba(232,220,200,.55)'">↩ ${item.q.slice(0,65)}${item.q.length>65?'…':''}</button>`
   ).join('');
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   HRIDAY SPARSH — Bilingual Reaction System
+═══════════════════════════════════════════════════════════════ */
+
+const REACTIONS = {
+  en: [
+    { id: 'jai',      emoji: '🙏', label: 'Jai Swaminarayan',  confirm: 'Maharaj ni krupa chhe 🙏' },
+    { id: 'nischay',  emoji: '✨', label: 'Got Clarity',        confirm: 'Nishchay thayo 🌟' },
+    { id: 'sparsh',   emoji: '💛', label: 'Touched my Heart',   confirm: 'Hriday sparsh thayo 💛' },
+    { id: 'vanchu',   emoji: '🔁', label: "I'll Read Again",    confirm: 'Vanchho farī jarūr 📖' },
+  ],
+  gu: [
+    { id: 'jai',      emoji: '🙏', label: 'જય સ્વામિનારાયણ',    confirm: 'મહારાજની કૃપા છે 🙏' },
+    { id: 'nischay',  emoji: '✨', label: 'નિશ્ચય થયો',          confirm: 'સુંદર નિશ્ચય 🌟' },
+    { id: 'sparsh',   emoji: '💛', label: 'હૃદય સ્પર્શ',         confirm: 'હૃદય સ્પર્શ થયો 💛' },
+    { id: 'vanchu',   emoji: '🔁', label: 'ફરી વાંચીશ',          confirm: 'ફરી ચોક્કસ વાંચજો 📖' },
+  ]
+};
+
+const REACTION_HEADING = {
+  en: '✦  Did this touch your heart?  ✦',
+  gu: '✦  હૃદય સ્પર્શ થયો?  ✦'
+};
+
+let reactionTimer = null;
+
+function showReactions() {
+  const lang = localStorage.getItem('amLang') || 'en';
+  const wrap = document.getElementById('reactionWrap');
+  const label = document.getElementById('reactionLabel');
+  const btns = document.getElementById('reactionBtns');
+  const confirm = document.getElementById('reactionConfirm');
+
+  // Reset state
+  confirm.style.display = 'none';
+  confirm.textContent = '';
+  label.textContent = REACTION_HEADING[lang];
+
+  // Get current question key for saving reaction
+  const qKey = cKey(document.getElementById('q').value.trim());
+
+  // Get previously saved reaction for this question if any
+  const savedReactions = JSON.parse(localStorage.getItem('amReactions') || '{}');
+  const savedId = savedReactions[qKey] || null;
+
+  // Render buttons
+  btns.innerHTML = '';
+  REACTIONS[lang].forEach(r => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'reaction-btn' + (r.id === savedId ? ' selected' : '');
+    btn.setAttribute('aria-label', r.label);
+    btn.innerHTML = `
+      <span class="reaction-emoji">${r.emoji}</span>
+      <span class="reaction-label-text">${r.label}</span>
+    `;
+    btn.addEventListener('click', () => handleReaction(r, qKey, btn));
+    btns.appendChild(btn);
+  });
+
+  // Show with slight delay so user reads answer first
+  wrap.style.display = 'none';
+  if (reactionTimer) clearTimeout(reactionTimer);
+  reactionTimer = setTimeout(() => {
+    wrap.style.display = 'block';
+    wrap.style.animation = 'fadeUp .5s ease both';
+  }, 3000);
+}
+
+function handleReaction(reaction, qKey, clickedBtn) {
+  const lang = localStorage.getItem('amLang') || 'en';
+  const allBtns = document.querySelectorAll('.reaction-btn');
+  const confirm = document.getElementById('reactionConfirm');
+
+  // Load saved reactions
+  const savedReactions = JSON.parse(localStorage.getItem('amReactions') || '{}');
+  const alreadySelected = savedReactions[qKey] === reaction.id;
+
+  // Deselect if tapping same reaction again
+  if (alreadySelected) {
+    delete savedReactions[qKey];
+    localStorage.setItem('amReactions', JSON.stringify(savedReactions));
+    clickedBtn.classList.remove('selected');
+    confirm.style.display = 'none';
+    return;
+  }
+
+  // Select new reaction
+  allBtns.forEach(b => b.classList.remove('selected'));
+  clickedBtn.classList.add('selected');
+
+  // Save
+  savedReactions[qKey] = reaction.id;
+  // Keep reactions map from growing forever — max 200 entries
+  const rKeys = Object.keys(savedReactions);
+  if (rKeys.length > 200) delete savedReactions[rKeys[0]];
+  localStorage.setItem('amReactions', JSON.stringify(savedReactions));
+
+  // Show confirmation
+  confirm.textContent = reaction.confirm;
+  confirm.style.display = 'block';
+  confirm.style.animation = 'fadeUp .4s ease both';
+
+  // Auto-hide confirm after 3s
+  setTimeout(() => {
+    confirm.style.display = 'none';
+  }, 3000);
+}
+
+function hideReactions() {
+  if (reactionTimer) clearTimeout(reactionTimer);
+  const wrap = document.getElementById('reactionWrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+// Hook into showAns and hideAns
+const _origShowAns = showAns;
+showAns = function(text, cached, coins) {
+  _origShowAns.call(this, text, cached, coins);
+  showReactions();
+};
+
+const _origHideAns = hideAns;
+hideAns = function() {
+  _origHideAns.call(this);
+  hideReactions();
+};
 </script>
 </body>
 </html>
