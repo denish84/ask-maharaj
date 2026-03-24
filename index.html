@@ -462,6 +462,8 @@ tailwind.config = {
 let cache = JSON.parse(localStorage.getItem('amCache') || '{}');
 let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}');
 const MAX_QUESTION_CHARS = 4000;
+/** Must match `DAILY_QUESTION_LIMIT` in api/ask.js */
+const DAILY_QUESTION_LIMIT = 20;
 
 window.onload = () => {
   setLang(localStorage.getItem('amLang') || 'en');
@@ -487,7 +489,7 @@ const LANG_STRINGS = {
       { label: 'Peace of mind', q: 'How to find peace of mind according to Maharaj?' },
       { label: 'Ekadashi', q: 'What is the importance of Ekadashi according to Maharaj?' },
     ],
-    limitMsg: '🙏 Daily limit of 20 questions reached. Come back tomorrow. Jai Swaminarayan 🙏',
+    limitMsg: `🙏 Daily limit of ${DAILY_QUESTION_LIMIT} questions reached. Come back tomorrow. Jai Swaminarayan 🙏`,
     langSuffix: 'IMPORTANT: You must answer in English only.',
   },
   gu: {
@@ -499,7 +501,7 @@ const LANG_STRINGS = {
       { label: 'મનની શાંતિ', q: 'મનની શાંતિ કેવી રીતે મેળવવી?' },
       { label: 'એકાદશી', q: 'એકાદશી નું મહત્વ શું છે?' },
     ],
-    limitMsg: '🙏 આજની ૨૦ પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏',
+    limitMsg: `🙏 આજની ${DAILY_QUESTION_LIMIT} પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏`,
     langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
   }
 };
@@ -536,7 +538,6 @@ function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0
 
 async function ask() {
   const question = document.getElementById('q').value.trim();
-  const model    = 'deepseek/deepseek-chat-v3-0324';
   const cacheKey = question;
 
   if (!question) { showErr('Please type a question first 🙏'); return; }
@@ -576,7 +577,7 @@ async function ask() {
 
   const lang = localStorage.getItem('amLang') || 'en';
 
-  if (limitData.count >= 20) {
+  if (limitData.count >= DAILY_QUESTION_LIMIT) {
     showErr(LANG_STRINGS[lang].limitMsg);
     return;
   }

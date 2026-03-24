@@ -4,6 +4,8 @@ const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
 const MAX_QUESTION_CHARS = 4000;
 const MAX_REQUEST_BYTES = 64 * 1024;
+/** Must match the client daily cap in index.html (`amDailyLimit` / limit messages). */
+const DAILY_QUESTION_LIMIT = 20;
 const ALLOWED_ORIGINS = new Set([
   'https://ask-maharaj.vercel.app',
   'https://www.ask-maharaj.vercel.app'
@@ -120,10 +122,11 @@ export default async function handler(req, res) {
 
   const today = new Date().toDateString();
   
-  // Memory Leak Fix: Automatically wipe the entire map at midnight
-  // so the server's memory doesn't fill up over weeks/months
+  // Memory: wipe limiter maps when the calendar day changes so entries from old
+  // IPs / clients do not accumulate unbounded on a warm instance.
   if (today !== lastClearedDate) {
     rateLimitMap.clear();
+    burstLimitMap.clear();
     lastClearedDate = today;
   }
 
@@ -153,8 +156,8 @@ export default async function handler(req, res) {
   const key = `${clientKey}_${today}`;
   const count = rateLimitMap.get(key) || 0;
   
-  // 3. Daily limiter per IP (raised to avoid shared-network false blocking)
-  if (count >= 200) {
+  // 3. Daily limiter per IP (same quota as the browser `amDailyLimit` check)
+  if (count >= DAILY_QUESTION_LIMIT) {
     return res.status(429).json({ error: 'DAILY_LIMIT' });
   }
 
