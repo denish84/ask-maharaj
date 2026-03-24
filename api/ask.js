@@ -2,7 +2,7 @@
 const rateLimitMap = new Map();
 const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
-const MAX_QUESTION_CHARS = 2000;
+const MAX_QUESTION_CHARS = 8000;
 const ALLOWED_ORIGINS = new Set([
   'https://ask-maharaj.vercel.app',
   'https://www.ask-maharaj.vercel.app'
