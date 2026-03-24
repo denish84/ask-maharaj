@@ -482,6 +482,15 @@ Formatting Rules:
 - Avoid generic motivational advice
 - End with a humble line such as: May Maharaj give you the strength to...`;
 
+/* Placed BEFORE the English system prompt so the model obeys Gujarati output. */
+const GUJARATI_MODE_PREAMBLE = `CRITICAL — OUTPUT LANGUAGE (MANDATORY):
+This request is in GUJARATI MODE. Write your ENTIRE answer in Gujarati script only (ગુજરાતી લિપિ).
+Do not write the main answer in English. Do not use English paragraphs or bullet explanations.
+Latin/English is allowed ONLY for fixed names like Vachanamrut, Swamini Vato, or Swaminarayan when unavoidable.
+Begin your reply with: જય સ્વામિનારાયણ.
+Ignore any later line that says to use English or to choose language "based on user input" — in this mode the answer MUST be Gujarati only.
+`;
+
 let cache = JSON.parse(localStorage.getItem('amCache') || '{}');
 let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}');
 
@@ -522,7 +531,7 @@ const LANG_STRINGS = {
       { label: 'એકાદશી', q: 'એકાદશી નું મહત્વ શું છે?' },
     ],
     limitMsg: '🙏 આજની ૩ પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏',
-    langSuffix: 'IMPORTANT: You must answer in Gujarati script only. Maximum 150-200 words in Gujarati',
+    langSuffix: 'REMINDER: Entire answer in Gujarati script only — no English body text. Length: about 150–200 words in Gujarati.',
   }
 };
 
@@ -559,12 +568,13 @@ function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0
 async function ask() {
   const question = document.getElementById('q').value.trim();
   const model    = 'deepseek/deepseek-chat-v3-0324';
-  const cacheKey = question;
+  const lang     = localStorage.getItem('amLang') || 'en';
+  const cacheKey = lang + '|' + cKey(question);
 
   if (!question) { showErr('Please type a question first 🙏'); return; }
 
-  // Cache hit — free!
-  const hit = cache[cKey(cacheKey)];
+  // Cache hit — free! (scoped by UI language so English answers are not reused in Gujarati mode)
+  const hit = cache[cacheKey];
   if (hit) {
     showAns(hit, true, 0);
     stats.a++; stats.c++;
@@ -587,8 +597,6 @@ async function ask() {
     limitData.count = 0;
   }
 
-  const lang = localStorage.getItem('amLang') || 'en';
-
   if (limitData.count >= 3) {
     showErr(LANG_STRINGS[lang].limitMsg);
     return;
@@ -599,7 +607,9 @@ async function ask() {
   try {
     let ans = '', coins = 0;
 
-    const fullMessage = SYSTEM_PROMPT + '\n\n' + LANG_STRINGS[lang].langSuffix + '\n\n[USER QUESTION]\n' + question;
+    const fullMessage = lang === 'gu'
+      ? GUJARATI_MODE_PREAMBLE + SYSTEM_PROMPT + '\n\n' + LANG_STRINGS.gu.langSuffix + '\n\n[USER QUESTION]\n' + question
+      : SYSTEM_PROMPT + '\n\n' + LANG_STRINGS.en.langSuffix + '\n\n[USER QUESTION]\n' + question;
 
     const res = await fetch('/api/ask', {
       method: 'POST',
@@ -608,7 +618,6 @@ async function ask() {
     });
 
     if (res.status === 429) {
-      const lang = localStorage.getItem('amLang') || 'en';
       const e429 = await res.json().catch(() => ({}));
       if (e429?.error === 'RATE_LIMITED') {
         showErr(lang === 'gu'
@@ -641,7 +650,7 @@ async function ask() {
     sessionStorage.setItem('amSession', sessionCount + 1);
 
     // Save to cache
-    cache[cKey(cacheKey)] = ans;
+    cache[cacheKey] = ans;
     const keys = Object.keys(cache);
     if (keys.length > 300) delete cache[keys[0]];
     localStorage.setItem('amCache', JSON.stringify(cache));
@@ -652,7 +661,6 @@ async function ask() {
     localStorage.setItem('amStats', JSON.stringify(stats));
 
   } catch(err) {
-    const lang = localStorage.getItem('amLang') || 'en';
     const msg = lang === 'gu'
       ? '📿 અત્યારે ઘણા ભક્તો પ્રશ્ન પૂછી રહ્યા છે. થોડીવાર પછી ફરી પ્રયત્ન કરો. 🙏'
       : '📿 Maharaj\'s wisdom is being sought by many right now. Please try again in a moment. 🙏';
