@@ -8,12 +8,26 @@ const ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:3000'
 ]);
 
+function isAllowedOrigin(origin, reqHost) {
+  try {
+    const url = new URL(origin);
+    const sameHost = !!reqHost && url.host === reqHost;
+    const inAllowlist = ALLOWED_ORIGINS.has(origin);
+    // Allow Vercel preview deployments (project-*.vercel.app) for testing.
+    const vercelPreview = url.protocol === 'https:' && url.hostname.endsWith('.vercel.app');
+    return sameHost || inAllowlist || vercelPreview;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   // Origin allowlist check (same-origin and trusted dev/prod origins)
   const origin = req.headers.origin || '';
-  if (origin && !ALLOWED_ORIGINS.has(origin)) {
+  const reqHost = req.headers.host || '';
+  if (origin && !isAllowedOrigin(origin, reqHost)) {
     return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
   }
 
