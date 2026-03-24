@@ -632,6 +632,9 @@ async function ask() {
 
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
+      if (res.status === 403 && e?.error === 'FORBIDDEN_ORIGIN') {
+        throw new Error(lang === 'gu' ? 'FORBIDDEN_ORIGIN_GU' : 'FORBIDDEN_ORIGIN_EN');
+      }
       if (res.status === 504) {
         throw new Error(lang === 'gu'
           ? 'AI_TIMEOUT_GU'
@@ -672,6 +675,10 @@ async function ask() {
       ? '⏳ જવાબ આવવામાં વધારે સમય લાગ્યો. કૃપા કરીને થોડા સમય પછી ફરી પ્રયાસ કરો. 🙏'
       : err?.message === 'AI_TIMEOUT_EN'
       ? '⏳ The response took too long. Please try again in a moment. 🙏'
+      : err?.message === 'FORBIDDEN_ORIGIN_GU'
+      ? '🔒 આ URL પર સુરક્ષા ચેક નિષ્ફળ ગયો. કૃપા કરીને ઓફિશિયલ લિંકથી એપ ખોલો. 🙏'
+      : err?.message === 'FORBIDDEN_ORIGIN_EN'
+      ? '🔒 Security check failed for this URL. Please open the app from the official link. 🙏'
       : lang === 'gu'
       ? '📿 અત્યારે ઘણા ભક્તો પ્રશ્ન પૂછી રહ્યા છે. થોડીવાર પછી ફરી પ્રયત્ન કરો. 🙏'
       : '📿 Maharaj\'s wisdom is being sought by many right now. Please try again in a moment. 🙏';

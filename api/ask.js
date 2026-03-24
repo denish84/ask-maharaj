@@ -23,12 +23,21 @@ function getAllowedOrigins() {
   return new Set([...ALLOWED_ORIGINS, ...envOrigins]);
 }
 
-function isAllowedOrigin(origin) {
+function isAllowedOrigin(origin, req) {
   try {
-    new URL(origin);
-    const inAllowlist = getAllowedOrigins().has(origin);
-    // Strict production-only policy for a single public Vercel URL.
-    return inAllowlist;
+    const originUrl = new URL(origin);
+    const requestHost =
+      req.headers['x-forwarded-host'] ||
+      req.headers.host ||
+      '';
+
+    // Always allow same-host requests (production, preview, custom domain).
+    if (requestHost && originUrl.host === requestHost) {
+      return true;
+    }
+
+    // Explicit allowlist fallback for cross-origin use-cases.
+    return getAllowedOrigins().has(origin);
   } catch {
     return false;
   }
@@ -38,7 +47,7 @@ export default async function handler(req, res) {
   const origin = req.headers.origin || '';
 
   if (req.method === 'OPTIONS') {
-    if (!origin || !isAllowedOrigin(origin)) {
+    if (!origin || !isAllowedOrigin(origin, req)) {
       return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
     }
     setCorsHeaders(res, origin);
@@ -47,8 +56,8 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
-  // Origin allowlist check (strict production origin only)
-  if (origin && !isAllowedOrigin(origin)) {
+  // Origin check for CSRF protection while allowing same deployed host.
+  if (origin && !isAllowedOrigin(origin, req)) {
     return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
   }
   if (origin) setCorsHeaders(res, origin);
