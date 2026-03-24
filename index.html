@@ -721,14 +721,21 @@ function setLoad(on) {
 
 function mdToHtml(text) {
   return String(text)
+    // strip lone list markers / empty bullets (e.g. "*" or "- " with no text) before other transforms
+    .replace(/^\s*[-•*●]\s*$/gm, '')
     // headings → styled paragraph
     .replace(/^#{1,3}\s+(.+)$/gm, '<p style="font-weight:600;margin:10px 0 4px;color:#f5a623">$1</p>')
     // bold
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // bullet lists (* must run before italic so "* item" is not half-parsed)
+    .replace(/^[-•*●]\s+(.+)$/gm, (_, line) => {
+      const t = String(line).trim();
+      return t
+        ? '<li style="margin:4px 0;padding-left:4px">' + t + '</li>'
+        : '';
+    })
     // italic
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // bullet lists
-    .replace(/^[-•]\s+(.+)$/gm, '<li style="margin:4px 0;padding-left:4px">$1</li>')
     // wrap consecutive <li> in <ul>
     .replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:8px 0;padding-left:18px;list-style:disc">$&</ul>')
     // horizontal rules
