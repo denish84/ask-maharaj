@@ -3,19 +3,15 @@ const rateLimitMap = new Map();
 const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
 const ALLOWED_ORIGINS = new Set([
-  'https://ask-maharaj.vercel.app',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000'
+  'https://ask-maharaj.vercel.app'
 ]);
 
 function isAllowedOrigin(origin, reqHost) {
   try {
     const url = new URL(origin);
-    const sameHost = !!reqHost && url.host === reqHost;
     const inAllowlist = ALLOWED_ORIGINS.has(origin);
-    // Allow Vercel preview deployments (project-*.vercel.app) for testing.
-    const vercelPreview = url.protocol === 'https:' && url.hostname.endsWith('.vercel.app');
-    return sameHost || inAllowlist || vercelPreview;
+    // Strict production-only policy for a single public Vercel URL.
+    return inAllowlist;
   } catch {
     return false;
   }
@@ -24,10 +20,9 @@ function isAllowedOrigin(origin, reqHost) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  // Origin allowlist check (same-origin and trusted dev/prod origins)
+  // Origin allowlist check (strict production origin only)
   const origin = req.headers.origin || '';
-  const reqHost = req.headers.host || '';
-  if (origin && !isAllowedOrigin(origin, reqHost)) {
+  if (origin && !isAllowedOrigin(origin)) {
     return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
   }
 
