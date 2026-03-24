@@ -3,13 +3,30 @@ const rateLimitMap = new Map();
 const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
 const ALLOWED_ORIGINS = new Set([
-  'https://ask-maharaj.vercel.app'
+  'https://ask-maharaj.vercel.app',
+  'https://www.ask-maharaj.vercel.app'
 ]);
 
-function isAllowedOrigin(origin, reqHost) {
+function setCorsHeaders(res, origin) {
+  if (!origin) return;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+function getAllowedOrigins() {
+  const envOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+  return new Set([...ALLOWED_ORIGINS, ...envOrigins]);
+}
+
+function isAllowedOrigin(origin) {
   try {
-    const url = new URL(origin);
-    const inAllowlist = ALLOWED_ORIGINS.has(origin);
+    new URL(origin);
+    const inAllowlist = getAllowedOrigins().has(origin);
     // Strict production-only policy for a single public Vercel URL.
     return inAllowlist;
   } catch {
@@ -18,13 +35,23 @@ function isAllowedOrigin(origin, reqHost) {
 }
 
 export default async function handler(req, res) {
+  const origin = req.headers.origin || '';
+
+  if (req.method === 'OPTIONS') {
+    if (!origin || !isAllowedOrigin(origin)) {
+      return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
+    }
+    setCorsHeaders(res, origin);
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') return res.status(405).end();
 
   // Origin allowlist check (strict production origin only)
-  const origin = req.headers.origin || '';
   if (origin && !isAllowedOrigin(origin)) {
     return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
   }
+  if (origin) setCorsHeaders(res, origin);
 
   const today = new Date().toDateString();
   
