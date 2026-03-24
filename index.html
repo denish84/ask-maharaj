@@ -461,6 +461,7 @@ tailwind.config = {
 ═══════════════════════════════════════════════════════════════ */
 let cache = JSON.parse(localStorage.getItem('amCache') || '{}');
 let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}');
+const MAX_QUESTION_CHARS = 4000;
 
 window.onload = () => {
   setLang(localStorage.getItem('amLang') || 'en');
@@ -539,6 +540,15 @@ async function ask() {
   const cacheKey = question;
 
   if (!question) { showErr('Please type a question first 🙏'); return; }
+  if (question.length > MAX_QUESTION_CHARS) {
+    const lang = localStorage.getItem('amLang') || 'en';
+    showErr(
+      lang === 'gu'
+        ? `🙏 પ્રશ્ન થોડો ટૂંકો લખો (મહત્તમ ${MAX_QUESTION_CHARS} અક્ષર).`
+        : `🙏 Please shorten your question (max ${MAX_QUESTION_CHARS} characters).`
+    );
+    return;
+  }
 
   // Cache hit — free!
   const hit = cache[cKey(cacheKey)];
@@ -592,6 +602,14 @@ async function ask() {
       } else {
         showErr(LANG_STRINGS[lang].limitMsg);
       }
+      return;
+    }
+    if (res.status === 413) {
+      const e413 = await res.json().catch(() => ({}));
+      const maxChars = Number(e413?.max_question_chars) || MAX_QUESTION_CHARS;
+      showErr(lang === 'gu'
+        ? `🙏 પ્રશ્ન થોડો ટૂંકો લખો (મહત્તમ ${maxChars} અક્ષર).`
+        : `🙏 Please shorten your question (max ${maxChars} characters).`);
       return;
     }
 

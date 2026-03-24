@@ -2,7 +2,8 @@
 const rateLimitMap = new Map();
 const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
-const MAX_QUESTION_CHARS = 8000;
+const MAX_QUESTION_CHARS = 4000;
+const MAX_REQUEST_BYTES = 64 * 1024;
 const ALLOWED_ORIGINS = new Set([
   'https://ask-maharaj.vercel.app',
   'https://www.ask-maharaj.vercel.app'
@@ -95,6 +96,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') return res.status(405).end();
+  const contentLength = Number(req.headers['content-length'] || 0);
+  if (contentLength > MAX_REQUEST_BYTES) {
+    return res.status(413).json({
+      error: 'QUESTION_TOO_LONG',
+      max_question_chars: MAX_QUESTION_CHARS
+    });
+  }
 
   if (!process.env.STRAICO_KEY) {
     return res.status(500).json({ error: 'SERVER_MISCONFIGURED: Missing STRAICO_KEY' });
@@ -160,12 +168,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid message' });
   }
 
-  const safeQuestion = question.length > MAX_QUESTION_CHARS
-    ? question.slice(0, MAX_QUESTION_CHARS)
-    : question;
+  if (question && question.length > MAX_QUESTION_CHARS) {
+    return res.status(413).json({
+      error: 'QUESTION_TOO_LONG',
+      max_question_chars: MAX_QUESTION_CHARS
+    });
+  }
 
-  const safeMessage = safeQuestion
-    ? `${SYSTEM_PROMPT}\n\n${LANG_SUFFIXES[lang]}\n\n[USER QUESTION]\n${safeQuestion}`
+  const safeMessage = question
+    ? `${SYSTEM_PROMPT}\n\n${LANG_SUFFIXES[lang]}\n\n[USER QUESTION]\n${question}`
     : legacyMessage;
 
   // 5. Upstream request timeout tuned for real-world latency on Vercel
