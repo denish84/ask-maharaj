@@ -2,26 +2,18 @@
 const rateLimitMap = new Map();
 const burstLimitMap = new Map();
 let lastClearedDate = new Date().toDateString();
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-  try {
-    const u = new URL(origin);
-    const h = u.hostname.toLowerCase();
-    if (h === 'ask-maharaj.vercel.app') return true;
-    if (h.endsWith('.vercel.app')) return true; // allow Vercel preview deployments
-    if (h === 'localhost' || h === '127.0.0.1') return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
+const ALLOWED_ORIGINS = new Set([
+  'https://ask-maharaj.vercel.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+]);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   // Origin allowlist check (same-origin and trusted dev/prod origins)
   const origin = req.headers.origin || '';
-  if (!isAllowedOrigin(origin)) {
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
     return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
   }
 
@@ -87,7 +79,7 @@ export default async function handler(req, res) {
         models: ['deepseek/deepseek-chat-v3-0324'],
         message,
         // Optional but recommended: Add max_tokens to prevent the AI from generating an entire book and costing you credits
-        max_tokens: 500 
+        max_tokens: 300 
       }),
       signal: controller.signal
     });
