@@ -182,12 +182,14 @@ export default async function handler(req, res) {
     ? `${SYSTEM_PROMPT}\n\n${LANG_SUFFIXES[lang]}\n\n[USER QUESTION]\n${question}`
     : legacyMessage;
 
-  // 5. Upstream request timeout tuned for real-world latency on Vercel
+  // 5. Upstream timeout: Gujarati generation is slower (Unicode, stricter prompt)
+  // and needs more wall-clock time than English. Keep under api/ask.js maxDuration in vercel.json.
+  const upstreamTimeoutMs = lang === 'gu' ? 55000 : 25000;
   let timeout;
   try {
     const controller = new AbortController();
-    timeout = setTimeout(() => controller.abort(), 25000);
-    
+    timeout = setTimeout(() => controller.abort(), upstreamTimeoutMs);
+
     const response = await fetch('https://api.straico.com/v1/prompt/completion', {
       method: 'POST',
       headers: {
