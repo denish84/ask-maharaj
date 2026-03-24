@@ -671,6 +671,7 @@ async function ask() {
 
   } catch(err) {
     const lang = localStorage.getItem('amLang') || 'en';
+    const rawErr = (err?.message || '').trim();
     const msg = err?.message === 'AI_TIMEOUT_GU'
       ? '⏳ જવાબ આવવામાં વધારે સમય લાગ્યો. કૃપા કરીને થોડા સમય પછી ફરી પ્રયાસ કરો. 🙏'
       : err?.message === 'AI_TIMEOUT_EN'
@@ -679,6 +680,10 @@ async function ask() {
       ? '🔒 આ URL પર સુરક્ષા ચેક નિષ્ફળ ગયો. કૃપા કરીને ઓફિશિયલ લિંકથી એપ ખોલો. 🙏'
       : err?.message === 'FORBIDDEN_ORIGIN_EN'
       ? '🔒 Security check failed for this URL. Please open the app from the official link. 🙏'
+      : lang === 'gu' && rawErr
+      ? `⚠️ સર્વર જવાબ: ${rawErr}`
+      : lang === 'en' && rawErr
+      ? `⚠️ Server response: ${rawErr}`
       : lang === 'gu'
       ? '📿 અત્યારે ઘણા ભક્તો પ્રશ્ન પૂછી રહ્યા છે. થોડીવાર પછી ફરી પ્રયત્ન કરો. 🙏'
       : '📿 Maharaj\'s wisdom is being sought by many right now. Please try again in a moment. 🙏';

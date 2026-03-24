@@ -58,6 +58,10 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
+  if (!process.env.STRAICO_KEY) {
+    return res.status(500).json({ error: 'SERVER_MISCONFIGURED: Missing STRAICO_KEY' });
+  }
+
   // CSRF protection: allow valid Origin OR trusted same-origin fetch metadata.
   if (origin) {
     if (!isAllowedOrigin(origin, req)) {
@@ -83,11 +87,14 @@ export default async function handler(req, res) {
     req.headers['x-forwarded-for']?.split(',')[0].trim() ||
     req.socket.remoteAddress ||
     'unknown';
+  const userAgent = (req.headers['user-agent'] || '').slice(0, 120);
+  const acceptLang = (req.headers['accept-language'] || '').slice(0, 64);
+  const clientKey = `${ip}|${userAgent}|${acceptLang}`;
 
   // 2. Short burst limiter: max 15 requests per 60 seconds per IP
   const now = Date.now();
   const minuteAgo = now - 60000;
-  const burstKey = `${ip}_burst`;
+  const burstKey = `${clientKey}_burst`;
   const recentHits = (burstLimitMap.get(burstKey) || []).filter(ts => ts > minuteAgo);
   if (recentHits.length >= 15) {
     burstLimitMap.set(burstKey, recentHits);
@@ -97,11 +104,11 @@ export default async function handler(req, res) {
   burstLimitMap.set(burstKey, recentHits);
     
   // 3. Daily limiter
-  const key = `${ip}_${today}`;
+  const key = `${clientKey}_${today}`;
   const count = rateLimitMap.get(key) || 0;
   
   // 3. Daily limiter per IP (raised to avoid shared-network false blocking)
-  if (count >= 30) {
+  if (count >= 200) {
     return res.status(429).json({ error: 'DAILY_LIMIT' });
   }
 
@@ -138,7 +145,10 @@ export default async function handler(req, res) {
     
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      return res.status(response.status).json({ error: err.message || 'Upstream error' });
+      return res.status(response.status).json({
+        error: err.message || 'Upstream error',
+        upstream_status: response.status
+      });
     }
     
     const data = await response.json();
