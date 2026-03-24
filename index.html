@@ -464,6 +464,8 @@ let stats = JSON.parse(localStorage.getItem('amStats') || '{"a":0,"c":0,"co":0}'
 const MAX_QUESTION_CHARS = 4000;
 /** Must match `DAILY_QUESTION_LIMIT` in api/ask.js */
 const DAILY_QUESTION_LIMIT = 20;
+/** Set after first `setLang` so we only reset UI when the user actually switches language. */
+let lastUiLang = null;
 
 window.onload = () => {
   setLang(localStorage.getItem('amLang') || 'en');
@@ -507,8 +509,24 @@ const LANG_STRINGS = {
 };
 
 function setLang(lang) {
+  const switched = lastUiLang !== null && lastUiLang !== lang;
+  lastUiLang = lang;
   localStorage.setItem('amLang', lang);
   const s = LANG_STRINGS[lang];
+
+  if (switched) {
+    const q = document.getElementById('q');
+    q.value = '';
+    q.style.height = 'auto';
+    hideErr();
+    hideAns();
+    const qEcho = document.getElementById('qEcho');
+    if (qEcho) qEcho.textContent = '';
+    const ansText = document.getElementById('ansText');
+    if (ansText) ansText.innerHTML = '';
+    const cTag = document.getElementById('cTag');
+    if (cTag) cTag.style.display = 'none';
+  }
 
   document.getElementById('q').placeholder = s.placeholder;
 
@@ -768,18 +786,26 @@ function loadRecent(item) {
 function saveRecentQuestion(q, a) {
   let recent = JSON.parse(localStorage.getItem('amRecent') || '[]');
   recent = recent.map(r => typeof r === 'string' ? { q: r, a: '' } : r);
-  recent = [{ q, a }, ...recent.filter(r => r.q !== q)].slice(0, 3);
+  recent = [{ q, a, savedAt: Date.now() }, ...recent.filter(r => r.q !== q)].slice(0, 3);
   localStorage.setItem('amRecent', JSON.stringify(recent));
   renderRecentQuestions();
 }
 function renderRecentQuestions() {
-  const recent = JSON.parse(localStorage.getItem('amRecent') || '[]').map(r =>
-    typeof r === 'string' ? { q: r, a: '' } : r
-  );
   const wrap = document.getElementById('recentWrap');
   const list = document.getElementById('recentList');
   if (!wrap || !list) return;
-  if (!recent.length) { wrap.style.display = 'none'; return; }
+
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  let recent = JSON.parse(localStorage.getItem('amRecent') || '[]')
+    .map(r => typeof r === 'string' ? { q: r, a: '', savedAt: 0 } : r)
+    .filter(r => (r.savedAt || 0) > oneDayAgo);
+
+  if (!recent.length) {
+    localStorage.removeItem('amRecent');
+    wrap.style.display = 'none';
+    return;
+  }
+  localStorage.setItem('amRecent', JSON.stringify(recent));
   wrap.style.display = 'block';
   list.innerHTML = recent.map(item =>
     `<button type="button" onclick='loadRecent(${JSON.stringify(item)})'
