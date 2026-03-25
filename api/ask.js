@@ -65,15 +65,13 @@ function getBikaRecordsBaseUrl() {
 }
 
 function getShortBrowserName(userAgent) {
-  const ua = String(userAgent || '').toLowerCase();
-  if (!ua) return 'Unknown';
-  if (ua.includes('edg/')) return 'Edge';
-  if (ua.includes('opr/') || ua.includes('opera')) return 'Opera';
-  if (ua.includes('chrome/') && !ua.includes('edg/') && !ua.includes('opr/')) return 'Chrome';
-  if (ua.includes('safari/') && !ua.includes('chrome/')) return 'Safari';
-  if (ua.includes('firefox/')) return 'Firefox';
-  if (ua.includes('msie') || ua.includes('trident/')) return 'IE';
-  return 'Unknown';
+  const ua = String(userAgent || '');
+  let browser = 'Other';
+  if (ua.includes('Edg/')) browser = 'Edge';
+  else if (ua.includes('Chrome/')) browser = 'Chrome';
+  else if (ua.includes('Safari/') && !ua.includes('Chrome')) browser = 'Safari';
+  else if (ua.includes('Firefox/')) browser = 'Firefox';
+  return browser;
 }
 
 async function logToBika({
