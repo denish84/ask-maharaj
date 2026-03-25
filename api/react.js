@@ -86,6 +86,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'INVALID_INPUT' });
   }
 
+  // #region agent log
+  fetch('http://127.0.0.1:7802/ingest/7c7dbc96-7639-402c-ac7a-995396caba49',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cee8ba'},body:JSON.stringify({sessionId:'cee8ba',runId:'pre-fix',hypothesisId:'H2',location:'api/react.js:handler',message:'Bika PATCH start',data:{recordIdPresent:!!recordId,reactionId,patchUrl:getBikaRecordUrl(recordId)},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
   const resp = await fetch(getBikaRecordUrl(recordId), {
     method: 'PATCH',
     headers: {
@@ -99,15 +103,23 @@ export default async function handler(req, res) {
     })
   });
 
+  const data = await resp.json().catch(() => ({}));
+
+  // Per user request: surface response for debugging (avoid secrets/PII)
+  console.log('Bika Response:', JSON.stringify(data));
+
+  // #region agent log
+  fetch('http://127.0.0.1:7802/ingest/7c7dbc96-7639-402c-ac7a-995396caba49',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cee8ba'},body:JSON.stringify({sessionId:'cee8ba',runId:'pre-fix',hypothesisId:'H2',location:'api/react.js:handler',message:'Bika PATCH done',data:{ok:resp.ok,status:resp.status,topLevelKeys:data&&typeof data==='object'?Object.keys(data).slice(0,12):null,dataId:data?.id??null,dataDataId:data?.data?.id??null},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
+    const err = data || {};
     return res.status(resp.status).json({
       error: 'BIKA_UPDATE_FAILED',
       details: err?.message || err?.error || null
     });
   }
 
-  const data = await resp.json().catch(() => ({}));
   return res.status(200).json({ ok: true, data });
 }
 

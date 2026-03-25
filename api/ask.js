@@ -67,7 +67,12 @@ function getBikaRecordsBaseUrl() {
 async function logToBika({ question, answer, ip, lang, tokens }) {
   if (!BIKA_API_TOKEN || !BIKA_SPACE_ID || !BIKA_NODE_ID) return null;
 
-  const resp = await fetch(getBikaRecordsBaseUrl(), {
+  const url = getBikaRecordsBaseUrl();
+  // #region agent log
+  fetch('http://127.0.0.1:7802/ingest/7c7dbc96-7639-402c-ac7a-995396caba49',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cee8ba'},body:JSON.stringify({sessionId:'cee8ba',runId:'pre-fix',hypothesisId:'H1',location:'api/ask.js:logToBika',message:'Bika POST start',data:{hasToken:!!BIKA_API_TOKEN,spaceIdPresent:!!BIKA_SPACE_ID,nodeIdPresent:!!BIKA_NODE_ID,url},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
+  const resp = await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${BIKA_API_TOKEN}`,
@@ -84,9 +89,22 @@ async function logToBika({ question, answer, ip, lang, tokens }) {
     })
   });
 
+  let data = null;
+  try {
+    data = await resp.json();
+  } catch {
+    data = null;
+  }
+
+  // Per user request: surface response for debugging (avoid secrets/PII)
+  console.log('Bika Response:', JSON.stringify(data));
+
+  // #region agent log
+  fetch('http://127.0.0.1:7802/ingest/7c7dbc96-7639-402c-ac7a-995396caba49',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cee8ba'},body:JSON.stringify({sessionId:'cee8ba',runId:'pre-fix',hypothesisId:'H1',location:'api/ask.js:logToBika',message:'Bika POST done',data:{ok:resp.ok,status:resp.status,hasData:!!data,topLevelKeys:data&&typeof data==='object'?Object.keys(data).slice(0,12):null,dataId:data?.id??null,dataDataId:data?.data?.id??null},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
   if (!resp.ok) return null;
-  const data = await resp.json().catch(() => null);
-  return data?.data?.id || null;
+  return data?.id || data?.data?.id || null;
 }
 
 function setCorsHeaders(res, origin) {
