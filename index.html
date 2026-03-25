@@ -885,11 +885,24 @@ function renderRecentQuestions() {
   }
   localStorage.setItem('amRecent', JSON.stringify(recent));
   wrap.style.display = 'block';
-  list.innerHTML = recent.map(item =>
-    `<button type="button" onclick='loadRecent(${JSON.stringify(item)})'
-      style="text-align:left;font-size:12px;font-style:italic;color:rgba(232,220,200,.55);cursor:pointer;background:none;border:none;padding:2px 4px;width:100%;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .18s;font-family:'Crimson Pro',serif"
-      onmouseover="this.style.color='#f5a623'" onmouseout="this.style.color='rgba(232,220,200,.55)'">↩ ${item.q.slice(0,65)}${item.q.length>65?'…':''}</button>`
-  ).join('');
+  list.innerHTML = '';
+  const btnStyle =
+    "text-align:left;font-size:12px;font-style:italic;color:rgba(232,220,200,.55);cursor:pointer;background:none;border:none;padding:2px 4px;width:100%;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .18s;font-family:'Crimson Pro',serif";
+  recent.forEach(item => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = btnStyle;
+    btn.textContent =
+      '↩ ' + item.q.slice(0, 65) + (item.q.length > 65 ? '…' : '');
+    btn.addEventListener('click', () => loadRecent(item));
+    btn.addEventListener('mouseover', () => {
+      btn.style.color = '#f5a623';
+    });
+    btn.addEventListener('mouseout', () => {
+      btn.style.color = 'rgba(232,220,200,.55)';
+    });
+    list.appendChild(btn);
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════
