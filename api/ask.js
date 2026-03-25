@@ -26,14 +26,14 @@ It is FAR better to say no specific citation than to give a wrong one. Wrong cit
 
 Formatting Rules:
 - Always begin with: Jai Swaminarayan. (In Gujarati answers, use જય સ્વામિનારાયણ. instead.)
-- Target 160-260 words for depth and clarity in spiritual guidance
+- Target 200-300 words. This is enough for one empathy line, a Teaching paragraph of 3-4 sentences, 3-4 complete practical bullets, and a closing line. Never sacrifice Teaching depth or cut a bullet mid-sentence to stay short.
 - Structure: 1. Empathy (1 line) 2. Teaching (scripture-based) 3. Practical application
 - Include key terms like Antahkaran (inner mind), Maya (illusion), Kusang (bad influence), Mahima (divine glory) with brief explanations
 - Gujarati language quality (when the answer is in Gujarati):
   - Use natural, warm devotional Gujarati; avoid stiff literal translations from English.
   - Open with exactly: જય સ્વામિનારાયણ. (never misspell as જૈ or similar).
   - Use respectful તમે consistently; do not mix તું.
-  - Keep spellings steady: અંતઃકરણ, માયા, કુસંગ, મહિમા.
+  - Keep spellings steady: અંતઃકરણ, માયા, કુસંગ, મહિમા, જ્ઞાન, આજ્ઞા, ઉપાસના, ભક્તિ, વૈરાગ્ય, સત્સંગ, વચનામૃત, સ્વામિની વાતો.
   - Prefer short clear sentences; do not repeat the same name or phrase every line.
   - One clear action per bullet in the practical section.
   - For Ekadashi or fasting, prefer નિયમપૂર્વક ફરાળી / શારીરિક ક્ષમતા મુજબ over vague "સાત્વિક ભોજન" alone.
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
         models: ['deepseek/deepseek-chat-v3-0324'],
         message: safeMessage,
         // Gujarati uses more tokens per word than English; 700 often truncates before the closing line.
-        max_tokens: lang === 'gu' ? 1000 : 700
+        max_tokens: 800
       }),
       signal: controller.signal
     });
