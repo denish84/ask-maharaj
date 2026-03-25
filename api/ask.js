@@ -64,7 +64,28 @@ function getBikaRecordsBaseUrl() {
   return `https://bika.ai/api/openapi/bika/v1/spaces/${BIKA_SPACE_ID}/resources/databases/${BIKA_NODE_ID}/records`;
 }
 
-async function logToBika({ question, answer, ip, lang, tokens }) {
+function getShortBrowserName(userAgent) {
+  const ua = String(userAgent || '').toLowerCase();
+  if (!ua) return 'Unknown';
+  if (ua.includes('edg/')) return 'Edge';
+  if (ua.includes('opr/') || ua.includes('opera')) return 'Opera';
+  if (ua.includes('chrome/') && !ua.includes('edg/') && !ua.includes('opr/')) return 'Chrome';
+  if (ua.includes('safari/') && !ua.includes('chrome/')) return 'Safari';
+  if (ua.includes('firefox/')) return 'Firefox';
+  if (ua.includes('msie') || ua.includes('trident/')) return 'IE';
+  return 'Unknown';
+}
+
+async function logToBika({
+  query,
+  aiResponse,
+  ip,
+  locationString,
+  userAgent,
+  shortBrowserName,
+  lang,
+  priceTotal
+}) {
   if (!BIKA_API_TOKEN || !BIKA_SPACE_ID || !BIKA_NODE_ID) return null;
 
   const resp = await fetch(getBikaRecordsBaseUrl(), {
@@ -75,11 +96,14 @@ async function logToBika({ question, answer, ip, lang, tokens }) {
     },
     body: JSON.stringify({
       cells: {
-        Question: question,
-        Answer: answer,
+        Question: query,
+        Answer: aiResponse,
+        Coins: Number(priceTotal),
         IP: ip,
+        Location: locationString,
+        UserAgent: userAgent,
+        Browser: shortBrowserName,
         Language: lang,
-        Tokens: typeof tokens === 'number' && Number.isFinite(tokens) ? tokens : 0
       }
     })
   });
@@ -172,11 +196,12 @@ export default async function handler(req, res) {
   }
 
   // 1. Better IP Extraction
-  const ip =
-    req.headers['x-real-ip'] ||
-    req.headers['x-forwarded-for']?.split(',')[0].trim() ||
-    req.socket.remoteAddress ||
-    'unknown';
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const city = String(req.headers['x-vercel-ip-city'] || '').trim();
+  const country = String(req.headers['x-vercel-ip-country'] || '').trim();
+  const locationString = city && country ? `${city}, ${country}` : city || country || 'Unknown';
+  const fullUserAgent = String(req.headers['user-agent'] || '');
+  const shortBrowserName = getShortBrowserName(fullUserAgent);
   const userAgent = (req.headers['user-agent'] || '').slice(0, 120);
   const acceptLang = (req.headers['accept-language'] || '').slice(0, 64);
   const clientKey = `${ip}|${userAgent}|${acceptLang}`;
@@ -266,7 +291,6 @@ export default async function handler(req, res) {
       const modelKey = Object.keys(completions)[0];
       const modelData = completions?.[modelKey] || null;
       aiAnswer = modelData?.completion?.choices?.[0]?.message?.content || '';
-      // Bika "Tokens" column now stores coins/price.total (decimal), not raw token count.
       totalCoins =
         modelData?.price?.total ??
         modelData?.coins ??
@@ -278,12 +302,16 @@ export default async function handler(req, res) {
     // Log to Bika after AI response (best-effort; do not fail user response)
     let recordId = null;
     try {
+      const query = question || legacyMessage || '';
       recordId = await logToBika({
-        question: question || legacyMessage || '',
-        answer: aiAnswer,
+        query,
+        aiResponse: aiAnswer,
+        priceTotal: totalCoins,
         ip: String(ip || 'unknown'),
+        locationString,
+        userAgent: fullUserAgent,
+        shortBrowserName,
         lang,
-        tokens: totalCoins
       });
     } catch {
       recordId = null;
