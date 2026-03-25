@@ -523,6 +523,7 @@ const MAX_QUESTION_CHARS = 4000;
 const DAILY_QUESTION_LIMIT = 20;
 /** Set after first `setLang` so we only reset UI when the user actually switches language. */
 let lastUiLang = null;
+let lastBikaRecordId = null;
 
 window.onload = () => {
   setLang(localStorage.getItem('amLang') || 'en');
@@ -704,6 +705,7 @@ async function ask() {
 
     const d = await res.json();
     const completions = d?.data?.completions;
+    lastBikaRecordId = typeof d?.recordId === 'string' ? d.recordId : null;
     if (completions) {
       const modelKey = Object.keys(completions)[0];
       const modelData = completions[modelKey];
@@ -911,22 +913,22 @@ function renderRecentQuestions() {
 
 const REACTIONS = {
   en: [
-    { id: 'jai',      emoji: '🙏', label: 'Jai Swaminarayan',  confirm: 'Maharaj ni krupa chhe 🙏' },
-    { id: 'nischay',  emoji: '✨', label: 'Got Clarity',        confirm: 'Nishchay thayo 🌟' },
-    { id: 'sparsh',   emoji: '💛', label: 'Touched my Heart',   confirm: 'Hriday sparsh thayo 💛' },
-    { id: 'vanchu',   emoji: '🔁', label: "I'll Read Again",    confirm: 'Vanchho farī jarūr 📖' },
+    { id: 'jai',      emoji: '🙏', label: 'Jai Swaminarayan', confirm: 'Heartfelt prayers to you.' },
+    { id: 'nischay',  emoji: '✨', label: 'Gained Clarity',   confirm: 'Maharaj shines light on your path.' },
+    { id: 'sparsh',   emoji: '💛', label: 'Touched my heart', confirm: 'A divine connection made.' },
+    { id: 'dharan',   emoji: '🙌', label: 'Will adopt',       confirm: 'May Maharaj give you the strength 🙏' },
   ],
   gu: [
-    { id: 'jai',      emoji: '🙏', label: 'જય સ્વામિનારાયણ',    confirm: 'મહારાજની કૃપા છે 🙏' },
-    { id: 'nischay',  emoji: '✨', label: 'નિશ્ચય થયો',          confirm: 'સુંદર નિશ્ચય 🌟' },
-    { id: 'sparsh',   emoji: '💛', label: 'હૃદય સ્પર્શ',         confirm: 'હૃદય સ્પર્શ થયો 💛' },
-    { id: 'vanchu',   emoji: '🔁', label: 'ફરી વાંચીશ',          confirm: 'ફરી ચોક્કસ વાંચજો 📖' },
+    { id: 'jai',      emoji: '🙏', label: 'Jai Swaminarayan', confirm: 'Heartfelt prayers to you.' },
+    { id: 'nischay',  emoji: '✨', label: 'Gained Clarity',   confirm: 'Maharaj shines light on your path.' },
+    { id: 'sparsh',   emoji: '💛', label: 'Touched my heart', confirm: 'A divine connection made.' },
+    { id: 'dharan',   emoji: '🙌', label: 'Will adopt',       confirm: 'May Maharaj give you the strength 🙏' },
   ]
 };
 
 const REACTION_HEADING = {
-  en: '✦  Did this touch your heart?  ✦',
-  gu: '✦  હૃદય સ્પર્શ થયો?  ✦'
+  en: 'Hriday Sparsh',
+  gu: 'Hriday Sparsh'
 };
 
 let reactionTimer = null;
@@ -943,25 +945,18 @@ function showReactions() {
   confirm.textContent = '';
   label.textContent = REACTION_HEADING[lang];
 
-  // Get current question key for saving reaction
-  const qKey = cKey(document.getElementById('q').value.trim());
-
-  // Get previously saved reaction for this question if any
-  const savedReactions = JSON.parse(localStorage.getItem('amReactions') || '{}');
-  const savedId = savedReactions[qKey] || null;
-
   // Render buttons
   btns.innerHTML = '';
   REACTIONS[lang].forEach(r => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'reaction-btn' + (r.id === savedId ? ' selected' : '');
+    btn.className = 'reaction-btn';
     btn.setAttribute('aria-label', r.label);
     btn.innerHTML = `
       <span class="reaction-emoji">${r.emoji}</span>
       <span class="reaction-label-text">${r.label}</span>
     `;
-    btn.addEventListener('click', () => handleReaction(r, qKey, btn));
+    btn.addEventListener('click', () => handleReaction(r, btn));
     btns.appendChild(btn);
   });
 
@@ -974,39 +969,30 @@ function showReactions() {
   }, 3000);
 }
 
-function handleReaction(reaction, qKey, clickedBtn) {
-  const lang = localStorage.getItem('amLang') || 'en';
+async function handleReaction(reaction, clickedBtn) {
   const allBtns = document.querySelectorAll('.reaction-btn');
   const confirm = document.getElementById('reactionConfirm');
-
-  // Load saved reactions
-  const savedReactions = JSON.parse(localStorage.getItem('amReactions') || '{}');
-  const alreadySelected = savedReactions[qKey] === reaction.id;
-
-  // Deselect if tapping same reaction again
-  if (alreadySelected) {
-    delete savedReactions[qKey];
-    localStorage.setItem('amReactions', JSON.stringify(savedReactions));
-    clickedBtn.classList.remove('selected');
-    confirm.style.display = 'none';
-    return;
-  }
 
   // Select new reaction
   allBtns.forEach(b => b.classList.remove('selected'));
   clickedBtn.classList.add('selected');
 
-  // Save
-  savedReactions[qKey] = reaction.id;
-  // Keep reactions map from growing forever — max 200 entries
-  const rKeys = Object.keys(savedReactions);
-  if (rKeys.length > 200) delete savedReactions[rKeys[0]];
-  localStorage.setItem('amReactions', JSON.stringify(savedReactions));
-
   // Show confirmation
   confirm.textContent = reaction.confirm;
   confirm.style.display = 'block';
   confirm.style.animation = 'fadeUp .4s ease both';
+
+  // Trigger server update (best-effort)
+  const recordId = lastBikaRecordId;
+  if (recordId) {
+    try {
+      await fetch('/api/react', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordId, reaction_id: reaction.id })
+      });
+    } catch {}
+  }
 
   // Auto-hide confirm after 3s
   setTimeout(() => {

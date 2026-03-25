@@ -49,6 +49,46 @@ const LANG_SUFFIXES = {
     'IMPORTANT: You must answer in Gujarati script only. Every single character in your response must be Gujarati Unicode (U+0A80–U+0AFF) or standard punctuation. Do not use any Latin, Devanagari, Cyrillic, or any other script characters anywhere in your response, including inside headings and bullet points.'
 };
 
+// Bika.ai (temporary inline defaults; move to .env later)
+const BIKA_API_TOKEN =
+  process.env.BIKA_API_TOKEN ||
+  'bktuaZzDjU3ukrVPFXQsSCjhioYnYiuabwr';
+const BIKA_SPACE_ID =
+  process.env.BIKA_SPACE_ID ||
+  'spc6FAjCrHVa6VHNbXte8viT';
+const BIKA_NODE_ID =
+  process.env.BIKA_NODE_ID ||
+  'datbO2aMFaOn3xmtiTAAEnPj';
+
+function getBikaRecordsBaseUrl() {
+  return `https://bika.ai/api/openapi/bika/v1/spaces/${BIKA_SPACE_ID}/resources/databases/${BIKA_NODE_ID}/records`;
+}
+
+async function logToBika({ question, answer, ip, lang, tokens }) {
+  if (!BIKA_API_TOKEN || !BIKA_SPACE_ID || !BIKA_NODE_ID) return null;
+
+  const resp = await fetch(getBikaRecordsBaseUrl(), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${BIKA_API_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      cells: {
+        Question: question,
+        Answer: answer,
+        IP: ip,
+        Language: lang,
+        Tokens: typeof tokens === 'number' && Number.isFinite(tokens) ? tokens : 0
+      }
+    })
+  });
+
+  if (!resp.ok) return null;
+  const data = await resp.json().catch(() => null);
+  return data?.data?.id || null;
+}
+
 function setCorsHeaders(res, origin) {
   if (!origin) return;
   res.setHeader('Access-Control-Allow-Origin', origin);
@@ -217,7 +257,38 @@ export default async function handler(req, res) {
     const data = await response.json();
     // Count only successful completions toward daily quota
     rateLimitMap.set(key, count + 1);
-    return res.status(200).json(data);
+
+    // Extract AI answer (best-effort) for Bika logging
+    const completions = data?.data?.completions;
+    let aiAnswer = '';
+    let totalTokens = 0;
+    if (completions && typeof completions === 'object') {
+      const modelKey = Object.keys(completions)[0];
+      const modelData = completions?.[modelKey] || null;
+      aiAnswer = modelData?.completion?.choices?.[0]?.message?.content || '';
+      totalTokens =
+        modelData?.completion?.usage?.total_tokens ||
+        modelData?.usage?.total_tokens ||
+        modelData?.usage?.totalTokens ||
+        0;
+      totalTokens = Number(totalTokens) || 0;
+    }
+
+    // Log to Bika after AI response (best-effort; do not fail user response)
+    let recordId = null;
+    try {
+      recordId = await logToBika({
+        question: question || legacyMessage || '',
+        answer: aiAnswer,
+        ip: String(ip || 'unknown'),
+        lang,
+        tokens: totalTokens
+      });
+    } catch {
+      recordId = null;
+    }
+
+    return res.status(200).json({ ...data, recordId });
     
   } catch (err) {
     // 6. Handling Timeout Gracefully
