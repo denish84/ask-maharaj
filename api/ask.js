@@ -26,7 +26,8 @@ It is FAR better to say no specific citation than to give a wrong one. Wrong cit
 
 Formatting Rules:
 - Always begin with: Jai Swaminarayan. (In Gujarati answers, use જય સ્વામિનારાયણ. instead.)
-- Target 200-300 words. This is enough for one empathy line, a Teaching paragraph of 3-4 sentences, 3-4 complete practical bullets, and a closing line. Never sacrifice Teaching depth or cut a bullet mid-sentence to stay short.
+- Aim for 150-300 words. Allow the answer to be as short as it naturally needs to be — never add filler to reach a word count. But ensure the Teaching section has at least 2-3 sentences of scriptural depth, and all practical bullets are complete. A spiritually complete short answer is better than a padded long one.
+- If a question is off-topic or cannot be answered from Vachanamrut or Swamini Vato, respond in 2-3 sentences only — do not pad.
 - Structure: 1. Empathy (1 line) 2. Teaching (scripture-based) 3. Practical application
 - Include key terms like Antahkaran (inner mind), Maya (illusion), Kusang (bad influence), Mahima (divine glory) with brief explanations
 - Gujarati language quality (when the answer is in Gujarati):
@@ -199,8 +200,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         models: ['deepseek/deepseek-chat-v3-0324'],
         message: safeMessage,
-        // Gujarati uses more tokens per word than English; 700 often truncates before the closing line.
-        max_tokens: 800
+        // Gujarati uses more tokens per word than English; give gu extra headroom vs en.
+        max_tokens: lang === 'gu' ? 1000 : 800
       }),
       signal: controller.signal
     });
