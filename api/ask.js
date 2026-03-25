@@ -261,17 +261,18 @@ export default async function handler(req, res) {
     // Extract AI answer (best-effort) for Bika logging
     const completions = data?.data?.completions;
     let aiAnswer = '';
-    let totalTokens = 0;
+    let totalCoins = 0;
     if (completions && typeof completions === 'object') {
       const modelKey = Object.keys(completions)[0];
       const modelData = completions?.[modelKey] || null;
       aiAnswer = modelData?.completion?.choices?.[0]?.message?.content || '';
-      totalTokens =
-        modelData?.completion?.usage?.total_tokens ||
-        modelData?.usage?.total_tokens ||
-        modelData?.usage?.totalTokens ||
+      // Bika "Tokens" column now stores coins/price.total (decimal), not raw token count.
+      totalCoins =
+        modelData?.price?.total ??
+        modelData?.coins ??
         0;
-      totalTokens = Number(totalTokens) || 0;
+      totalCoins = Number(totalCoins);
+      if (!Number.isFinite(totalCoins)) totalCoins = 0;
     }
 
     // Log to Bika after AI response (best-effort; do not fail user response)
@@ -282,7 +283,7 @@ export default async function handler(req, res) {
         answer: aiAnswer,
         ip: String(ip || 'unknown'),
         lang,
-        tokens: totalTokens
+        tokens: totalCoins
       });
     } catch {
       recordId = null;
