@@ -74,13 +74,32 @@ function getShortBrowserName(userAgent) {
   return browser;
 }
 
+function getDeviceType(userAgent) {
+  const ua = String(userAgent || '');
+  return /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua) ? 'Mobile' : 'Desktop';
+}
+
+function getOsName(userAgent) {
+  const ua = String(userAgent || '');
+  if (/Android/i.test(ua)) return 'Android';
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+  if (/Windows/i.test(ua)) return 'Windows';
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'macOS';
+  return 'Other';
+}
+
 async function logToBika({
+  status,
   query,
   aiResponse,
   ip,
   locationString,
-  userAgent,
-  shortBrowserName,
+  browserName,
+  deviceType,
+  osName,
+  isCacheHit,
+  responseTime,
+  questionLen,
   lang,
   priceTotal
 }) {
@@ -94,13 +113,18 @@ async function logToBika({
     },
     body: JSON.stringify({
       cells: {
+        Status: status,
         Question: query,
         Answer: aiResponse,
         Coins: Number(priceTotal),
         IP: ip,
         Location: locationString,
-        UserAgent: userAgent,
-        Browser: shortBrowserName,
+        Browser: browserName,
+        Device: deviceType,
+        OS: osName,
+        CacheHit: isCacheHit ? 'Yes' : 'No',
+        ResponseMs: responseTime,
+        QuestionLen: questionLen,
         Language: lang,
       }
     })
@@ -148,6 +172,7 @@ function isAllowedOrigin(origin, req) {
 }
 
 export default async function handler(req, res) {
+  const requestStartMs = Date.now();
   const origin = req.headers.origin || '';
   const secFetchSite = (req.headers['sec-fetch-site'] || '').toLowerCase();
   const sameOriginFetch = secFetchSite === 'same-origin' || secFetchSite === 'none';
@@ -197,9 +222,11 @@ export default async function handler(req, res) {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
   const city = String(req.headers['x-vercel-ip-city'] || '').trim();
   const country = String(req.headers['x-vercel-ip-country'] || '').trim();
-  const locationString = city && country ? `${city}, ${country}` : city || country || 'Unknown';
+  const locationString = `${city || 'Unknown'}, ${country || ''}`;
   const fullUserAgent = String(req.headers['user-agent'] || '');
-  const shortBrowserName = getShortBrowserName(fullUserAgent);
+  const browserName = getShortBrowserName(fullUserAgent);
+  const deviceType = getDeviceType(fullUserAgent);
+  const osName = getOsName(fullUserAgent);
   const userAgent = (req.headers['user-agent'] || '').slice(0, 120);
   const acceptLang = (req.headers['accept-language'] || '').slice(0, 64);
   const clientKey = `${ip}|${userAgent}|${acceptLang}`;
@@ -230,6 +257,11 @@ export default async function handler(req, res) {
   const question = typeof body.question === 'string' ? body.question.trim() : '';
   const lang = body.lang === 'gu' ? 'gu' : 'en';
   const legacyMessage = typeof body.message === 'string' ? body.message.trim() : '';
+  const isCacheHit =
+    Boolean(body.cacheHit) ||
+    String(req.headers['x-vercel-cache'] || '').toUpperCase() === 'HIT';
+  const query = question || legacyMessage || '';
+  const questionLen = query.length;
 
   if (!question && !legacyMessage) {
     return res.status(400).json({ error: 'Invalid message' });
@@ -297,18 +329,24 @@ export default async function handler(req, res) {
       if (!Number.isFinite(totalCoins)) totalCoins = 0;
     }
 
+    const responseTime = Date.now() - requestStartMs;
+
     // Log to Bika after AI response (best-effort; do not fail user response)
     let recordId = null;
     try {
-      const query = question || legacyMessage || '';
       recordId = await logToBika({
+        status: 'Success',
         query,
         aiResponse: aiAnswer,
         priceTotal: totalCoins,
         ip: String(ip || 'unknown'),
         locationString,
-        userAgent: fullUserAgent,
-        shortBrowserName,
+        browserName,
+        deviceType,
+        osName,
+        isCacheHit,
+        responseTime,
+        questionLen,
         lang,
       });
     } catch {
@@ -318,6 +356,26 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...data, recordId });
     
   } catch (err) {
+    // Best-effort error telemetry for Bika
+    try {
+      const responseTime = Date.now() - requestStartMs;
+      await logToBika({
+        status: 'Error',
+        query,
+        aiResponse: '',
+        priceTotal: 0,
+        ip: String(ip || 'unknown'),
+        locationString,
+        browserName,
+        deviceType,
+        osName,
+        isCacheHit,
+        responseTime,
+        questionLen,
+        lang,
+      });
+    } catch {}
+
     // 6. Handling Timeout Gracefully
     if (err.name === 'AbortError') {
       return res.status(504).json({ error: 'AI took too long to respond. Please try again.' });
