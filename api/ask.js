@@ -104,7 +104,14 @@ async function logToBika({
   lang,
   priceTotal
 }) {
-  if (!BIKA_API_TOKEN || !BIKA_SPACE_ID || !BIKA_NODE_ID) return null;
+  if (!BIKA_API_TOKEN || !BIKA_SPACE_ID || !BIKA_NODE_ID) {
+    return {
+      ok: false,
+      recordId: null,
+      status: 0,
+      error: 'Missing Bika configuration'
+    };
+  }
 
   const resp = await fetch(getBikaRecordsBaseUrl(), {
     method: 'POST',
@@ -132,13 +139,34 @@ async function logToBika({
     })
   });
 
-  if (!resp.ok) {
-    const errBody = await resp.text().catch(() => '');
-    console.error('[Bika log failed]', resp.status, errBody);
-    return null;
+  const textBody = await resp.text().catch(() => '');
+  let parsed = null;
+  try {
+    parsed = textBody ? JSON.parse(textBody) : null;
+  } catch {
+    parsed = null;
   }
-  const data = await resp.json().catch(() => null);
-  return data?.data?.id || null;
+
+  if (!resp.ok) {
+    console.error('[Bika log failed]', resp.status, textBody || parsed);
+    return {
+      ok: false,
+      recordId: null,
+      status: resp.status,
+      error:
+        parsed?.message ||
+        parsed?.error ||
+        textBody ||
+        'Unknown Bika error'
+    };
+  }
+
+  return {
+    ok: true,
+    recordId: parsed?.data?.id || parsed?.id || null,
+    status: resp.status,
+    error: null
+  };
 }
 
 function setCorsHeaders(res, origin) {
@@ -339,8 +367,9 @@ export default async function handler(req, res) {
 
     // Log to Bika after AI response (best-effort; do not fail user response)
     let recordId = null;
+    let bikaLog = null;
     try {
-      recordId = await logToBika({
+      bikaLog = await logToBika({
         status: 'Success',
         query,
         aiResponse: aiAnswer,
@@ -356,17 +385,24 @@ export default async function handler(req, res) {
         questionLen,
         lang,
       });
+      recordId = bikaLog?.recordId || null;
     } catch {
       recordId = null;
+      bikaLog = {
+        ok: false,
+        recordId: null,
+        status: 0,
+        error: 'Unexpected exception while logging to Bika'
+      };
     }
 
-    return res.status(200).json({ ...data, recordId });
+    return res.status(200).json({ ...data, recordId, bikaLog });
     
   } catch (err) {
     // Best-effort error telemetry for Bika
     try {
       const responseTime = Date.now() - requestStartMs;
-      await logToBika({
+      const errorLog = await logToBika({
         status: 'Error',
         query,
         aiResponse: '',
@@ -382,6 +418,9 @@ export default async function handler(req, res) {
         questionLen,
         lang,
       });
+      if (!errorLog?.ok) {
+        console.error('[Bika error-log failed]', errorLog?.status, errorLog?.error);
+      }
     } catch {}
 
     // 6. Handling Timeout Gracefully
