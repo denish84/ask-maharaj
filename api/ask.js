@@ -362,8 +362,9 @@ export default async function handler(req, res) {
 
     // Log to Bika after AI response (best-effort; do not fail user response)
     let recordId = null;
+    let bikaLog = null;
     try {
-      const bikaLog = await logToBika({
+      bikaLog = await logToBika({
         status: 'Success',
         query,
         aiResponse: aiAnswer,
@@ -381,9 +382,15 @@ export default async function handler(req, res) {
       recordId = bikaLog?.recordId || null;
     } catch {
       recordId = null;
+      bikaLog = {
+        ok: false,
+        recordId: null,
+        status: 0,
+        error: 'Unexpected exception while logging to Bika'
+      };
     }
 
-    return res.status(200).json({ ...data, recordId });
+    return res.status(200).json({ ...data, recordId, bikaLog });
     
   } catch (err) {
     // Best-effort error telemetry for Bika
