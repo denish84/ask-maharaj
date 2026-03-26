@@ -821,14 +821,17 @@ function mdToHtml(text) {
     .replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:6px 0;padding-left:18px;list-style:disc">$&</ul>')
     // horizontal rules
     .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid rgba(232,131,42,.2);margin:12px 0">')
-    // double newline → paragraph break
-    .replace(/\n\n/g, '<br>')
-    .replace(/\n/g, '<br>')
+    // true paragraph break only on blank lines
+    .replace(/\n\n/g, '<br><br>')
+    // single line wraps from model output should flow as normal prose
+    .replace(/\n/g, ' ')
     // keep list blocks compact; avoid big gaps around bullets/final paragraph
     .replace(/<\/li><br>\s*<li/g, '</li><li')
     .replace(/<ul[^>]*><br>/g, m => m.replace('<br>', ''))
     .replace(/<br>\s*<\/ul>/g, '</ul>')
-    .replace(/(<br>\s*){3,}/g, '<br><br>');
+    .replace(/(<br>\s*){3,}/g, '<br><br>')
+    // tighten accidental multi-space runs after newline normalization
+    .replace(/[ \t]{2,}/g, ' ');
 }
 
 function showAns(text, cached, coins) {
