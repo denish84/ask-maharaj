@@ -131,7 +131,7 @@ async function logToBika({
         Browser: browserName,
         Device: deviceType,
         OS: osName,
-        CacheHit: isCacheHit ? 'Yes' : 'No',
+        CacheHit: Boolean(isCacheHit),
         ResponseMs: responseTime,
         QuestionLength: questionLen,
         Language: lang,
