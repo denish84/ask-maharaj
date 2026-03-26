@@ -538,36 +538,6 @@ qEl.addEventListener('input', function() {
 
 function setQ(t) { document.getElementById('q').value = t; }
 
-function setBikaDebug(text, isError) {
-  let el = document.getElementById('bikaDebug');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'bikaDebug';
-    el.style.cssText =
-      'margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.45;font-family:monospace;white-space:pre-wrap;display:none';
-    const errBox = document.getElementById('errBox');
-    if (errBox && errBox.parentNode) {
-      errBox.parentNode.insertBefore(el, errBox.nextSibling);
-    } else {
-      document.body.appendChild(el);
-    }
-  }
-  if (!text) {
-    el.style.display = 'none';
-    el.textContent = '';
-    return;
-  }
-  el.style.display = 'block';
-  el.style.border = isError
-    ? '1px solid rgba(220,80,80,.45)'
-    : '1px solid rgba(232,131,42,.35)';
-  el.style.background = isError
-    ? 'rgba(180,40,40,.12)'
-    : 'rgba(232,131,42,.08)';
-  el.style.color = isError ? '#f0a0a0' : '#f5d6a6';
-  el.textContent = text;
-}
-
 /* ── Language toggle ── */
 const LANG_STRINGS = {
   en: {
@@ -688,7 +658,7 @@ async function ask() {
     return;
   }
 
-  setLoad(true); hideErr(); hideAns(); setBikaDebug('', false);
+  setLoad(true); hideErr(); hideAns();
 
   try {
     let ans = '', coins = 0;
@@ -736,15 +706,6 @@ async function ask() {
     const d = await res.json();
     const completions = d?.data?.completions;
     lastBikaRecordId = typeof d?.recordId === 'string' ? d.recordId : null;
-    if (d?.bikaLog) {
-      const b = d.bikaLog;
-      const msg = b.ok
-        ? `Bika log: OK\nstatus=${b.status}\nrecordId=${b.recordId || 'none'}`
-        : `Bika log: FAILED\nstatus=${b.status || 'n/a'}\nerror=${b.error || 'unknown'}`;
-      setBikaDebug(msg, !b.ok);
-    } else {
-      setBikaDebug('Bika log: no debug payload returned from /api/ask', true);
-    }
     if (completions) {
       const modelKey = Object.keys(completions)[0];
       const modelData = completions[modelKey];

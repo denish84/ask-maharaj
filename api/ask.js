@@ -98,7 +98,6 @@ async function logToBika({
   browserName,
   deviceType,
   osName,
-  isCacheHit,
   responseTime,
   questionLen,
   lang,
@@ -131,7 +130,6 @@ async function logToBika({
         Browser: browserName,
         Device: deviceType,
         OS: osName,
-        CacheHit: Boolean(isCacheHit),
         ResponseMs: responseTime,
         QuestionLength: questionLen,
         Language: lang,
@@ -291,9 +289,6 @@ export default async function handler(req, res) {
   const question = typeof body.question === 'string' ? body.question.trim() : '';
   const lang = body.lang === 'gu' ? 'gu' : 'en';
   const legacyMessage = typeof body.message === 'string' ? body.message.trim() : '';
-  const isCacheHit =
-    Boolean(body.cacheHit) ||
-    String(req.headers['x-vercel-cache'] || '').toUpperCase() === 'HIT';
   const query = question || legacyMessage || '';
   const questionLen = query.length;
 
@@ -367,9 +362,8 @@ export default async function handler(req, res) {
 
     // Log to Bika after AI response (best-effort; do not fail user response)
     let recordId = null;
-    let bikaLog = null;
     try {
-      bikaLog = await logToBika({
+      const bikaLog = await logToBika({
         status: 'Success',
         query,
         aiResponse: aiAnswer,
@@ -380,7 +374,6 @@ export default async function handler(req, res) {
         browserName,
         deviceType,
         osName,
-        isCacheHit,
         responseTime,
         questionLen,
         lang,
@@ -388,15 +381,9 @@ export default async function handler(req, res) {
       recordId = bikaLog?.recordId || null;
     } catch {
       recordId = null;
-      bikaLog = {
-        ok: false,
-        recordId: null,
-        status: 0,
-        error: 'Unexpected exception while logging to Bika'
-      };
     }
 
-    return res.status(200).json({ ...data, recordId, bikaLog });
+    return res.status(200).json({ ...data, recordId });
     
   } catch (err) {
     // Best-effort error telemetry for Bika
@@ -413,7 +400,6 @@ export default async function handler(req, res) {
         browserName,
         deviceType,
         osName,
-        isCacheHit,
         responseTime,
         questionLen,
         lang,
