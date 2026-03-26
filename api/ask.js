@@ -88,6 +88,25 @@ function getOsName(userAgent) {
   return 'Other';
 }
 
+function cleanGeoHeader(value) {
+  const v = String(value || '').trim();
+  if (!v) return '';
+  if (v.toLowerCase() === 'unknown' || v.toLowerCase() === 'undefined') return '';
+  return v;
+}
+
+function buildLocationString(req) {
+  const city = cleanGeoHeader(req.headers['x-vercel-ip-city']);
+  const region = cleanGeoHeader(req.headers['x-vercel-ip-country-region']);
+  const country = cleanGeoHeader(req.headers['x-vercel-ip-country']);
+
+  if (city && country) return `${city}, ${country}`;
+  if (region && country) return `${region}, ${country}`;
+  if (city) return city;
+  if (country) return country;
+  return 'Unknown';
+}
+
 async function logToBika({
   status,
   query,
@@ -251,10 +270,9 @@ export default async function handler(req, res) {
   }
 
   // 1. Better IP Extraction
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
-  const city = String(req.headers['x-vercel-ip-city'] || '').trim();
-  const country = String(req.headers['x-vercel-ip-country'] || '').trim();
-  const locationString = `${city || 'Unknown'}, ${country || ''}`;
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '');
+  const ip = (forwardedFor.split(',')[0] || req.socket.remoteAddress || 'unknown').trim();
+  const locationString = buildLocationString(req);
   const fullUserAgent = String(req.headers['user-agent'] || '');
   const browserName = getShortBrowserName(fullUserAgent);
   const deviceType = getDeviceType(fullUserAgent);
