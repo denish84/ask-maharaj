@@ -797,7 +797,9 @@ function mdToHtml(text) {
     // collapse excessive blank lines from model output
     .replace(/\n{3,}/g, '\n\n')
     // trim spaces on empty lines
-    .replace(/[ \t]+\n/g, '\n');
+    .replace(/[ \t]+\n/g, '\n')
+    // remove trailing blank lines that push the closing sentence down
+    .replace(/\n+$/g, '');
 
   return normalized
     // strip lone list markers / empty bullets (e.g. "*" or "- " with no text) before other transforms
@@ -821,7 +823,12 @@ function mdToHtml(text) {
     .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid rgba(232,131,42,.2);margin:12px 0">')
     // double newline → paragraph break
     .replace(/\n\n/g, '<br>')
-    .replace(/\n/g, '<br>');
+    .replace(/\n/g, '<br>')
+    // keep list blocks compact; avoid big gaps around bullets/final paragraph
+    .replace(/<\/li><br>\s*<li/g, '</li><li')
+    .replace(/<ul[^>]*><br>/g, m => m.replace('<br>', ''))
+    .replace(/<br>\s*<\/ul>/g, '</ul>')
+    .replace(/(<br>\s*){3,}/g, '<br><br>');
 }
 
 function showAns(text, cached, coins) {
