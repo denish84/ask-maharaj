@@ -340,10 +340,12 @@ export default async function handler(req, res) {
         'Authorization': 'Bearer ' + process.env.STRAICO_KEY
       },
       body: JSON.stringify({
-        models: ['deepseek/deepseek-chat-v3-0324'],
+        models: ['openai/gpt-4.1'],
         message: safeMessage,
+        // Keep responses consistent for spiritual guidance while allowing enough depth.
+        temperature: 0.3,
         // Gujarati uses more tokens per word than English; give gu extra headroom vs en.
-        max_tokens: lang === 'gu' ? 1000 : 800
+        max_tokens: lang === 'gu' ? 1400 : 1100
       }),
       signal: controller.signal
     });
