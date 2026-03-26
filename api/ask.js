@@ -94,6 +94,7 @@ async function logToBika({
   aiResponse,
   ip,
   locationString,
+  userAgent,
   browserName,
   deviceType,
   osName,
@@ -119,18 +120,23 @@ async function logToBika({
         Coins: Number(priceTotal),
         IP: ip,
         Location: locationString,
+        UserAgent: userAgent,
         Browser: browserName,
         Device: deviceType,
         OS: osName,
         CacheHit: isCacheHit ? 'Yes' : 'No',
         ResponseMs: responseTime,
-        QuestionLen: questionLen,
+        QuestionLength: questionLen,
         Language: lang,
       }
     })
   });
 
-  if (!resp.ok) return null;
+  if (!resp.ok) {
+    const errBody = await resp.text().catch(() => '');
+    console.error('[Bika log failed]', resp.status, errBody);
+    return null;
+  }
   const data = await resp.json().catch(() => null);
   return data?.data?.id || null;
 }
@@ -341,6 +347,7 @@ export default async function handler(req, res) {
         priceTotal: totalCoins,
         ip: String(ip || 'unknown'),
         locationString,
+        userAgent: fullUserAgent,
         browserName,
         deviceType,
         osName,
@@ -366,6 +373,7 @@ export default async function handler(req, res) {
         priceTotal: 0,
         ip: String(ip || 'unknown'),
         locationString,
+        userAgent: fullUserAgent,
         browserName,
         deviceType,
         osName,
