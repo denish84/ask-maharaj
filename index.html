@@ -793,7 +793,13 @@ function setLoad(on) {
 }
 
 function mdToHtml(text) {
-  return String(text)
+  const normalized = String(text)
+    // collapse excessive blank lines from model output
+    .replace(/\n{3,}/g, '\n\n')
+    // trim spaces on empty lines
+    .replace(/[ \t]+\n/g, '\n');
+
+  return normalized
     // strip lone list markers / empty bullets (e.g. "*" or "- " with no text) before other transforms
     .replace(/^\s*[-•*●]\s*$/gm, '')
     // headings → styled paragraph
@@ -804,17 +810,17 @@ function mdToHtml(text) {
     .replace(/^[-•*●]\s+(.+)$/gm, (_, line) => {
       const t = String(line).trim();
       return t
-        ? '<li style="margin:4px 0;padding-left:4px">' + t + '</li>'
+        ? '<li style="margin:2px 0;padding-left:4px">' + t + '</li>'
         : '';
     })
     // italic
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     // wrap consecutive <li> in <ul>
-    .replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:8px 0;padding-left:18px;list-style:disc">$&</ul>')
+    .replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:6px 0;padding-left:18px;list-style:disc">$&</ul>')
     // horizontal rules
     .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid rgba(232,131,42,.2);margin:12px 0">')
     // double newline → paragraph break
-    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n\n/g, '<br>')
     .replace(/\n/g, '<br>');
 }
 
