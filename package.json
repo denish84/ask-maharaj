@@ -1,0 +1,14 @@
+{
+  "name": "ask-maharaj-tools",
+  "private": true,
+  "description": "Local scripts for Vachanamrut PDF tooling",
+  "type": "module",
+  "scripts": {
+    "ingest": "node scripts/ingest-pdf.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.0",
+    "pdf-parse": "^1.1.1"
+  }
+}
