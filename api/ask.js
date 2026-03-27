@@ -1,3 +1,13 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const RETRIEVAL_MATCH_COUNT = 8;
+const RETRIEVAL_THRESHOLD = 0.5;
+
 // Keep this outside the handler so it persists while the server is "warm"
 const rateLimitMap = new Map();
 const burstLimitMap = new Map();
@@ -222,6 +232,51 @@ function isAllowedOrigin(origin, req) {
   }
 }
 
+async function embedQuestion(text) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'models/gemini-embedding-001',
+        taskType: 'RETRIEVAL_QUERY',
+        outputDimensionality: 3072,
+        content: { parts: [{ text }] }
+      })
+    }
+  );
+  const data = await res.json();
+  if (!data.embedding?.values) return null;
+  return data.embedding.values;
+}
+
+async function retrieveContext(question) {
+  const embedding = await embedQuestion(question);
+  if (!embedding) return { context: '', citations: [] };
+
+  const { data: chunks, error } = await supabase.rpc('match_chunks', {
+    query_embedding: embedding,
+    match_threshold: RETRIEVAL_THRESHOLD,
+    match_count: RETRIEVAL_MATCH_COUNT
+  });
+
+  if (error || !chunks?.length) return { context: '', citations: [] };
+
+  const citations = chunks.map(c => ({
+    section: c.section,
+    page_start: c.page_start,
+    page_end: c.page_end,
+    similarity: Math.round(c.similarity * 100)
+  }));
+
+  const context = chunks
+    .map((c, i) => `[${i + 1}] (${c.section}, p.${c.page_start})\n${c.content}`)
+    .join('\n\n');
+
+  return { context, citations };
+}
+
 export default async function handler(req, res) {
   const requestStartMs = Date.now();
   const origin = req.headers.origin || '';
@@ -321,8 +376,27 @@ export default async function handler(req, res) {
     });
   }
 
+  let context = '';
+  let citations = [];
+
+  if (question) {
+    try {
+      const retrieved = await retrieveContext(question);
+      context = retrieved.context;
+      citations = retrieved.citations;
+    } catch {
+      // RAG failure is non-fatal — fall back to base prompt
+      context = '';
+      citations = [];
+    }
+  }
+
+  const contextBlock = context
+    ? `\n\n[RELEVANT PASSAGES FROM VACHANAMRUT]\nUse ONLY the following passages to answer. Cite the section and page number when referencing them.\n\n${context}`
+    : '';
+
   const safeMessage = question
-    ? `${SYSTEM_PROMPT}\n\n${LANG_SUFFIXES[lang]}\n\n[USER QUESTION]\n${question}`
+    ? `${SYSTEM_PROMPT}${contextBlock}\n\n${LANG_SUFFIXES[lang]}\n\n[USER QUESTION]\n${question}`
     : legacyMessage;
 
   // 5. Upstream timeout: Gujarati generation is slower (Unicode, stricter prompt)
@@ -410,7 +484,7 @@ export default async function handler(req, res) {
       };
     }
 
-    return res.status(200).json({ ...data, recordId, bikaLog });
+    return res.status(200).json({ ...data, recordId, bikaLog, citations });
     
   } catch (err) {
     // Best-effort error telemetry for Bika
