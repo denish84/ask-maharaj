@@ -631,6 +631,7 @@ async function ask() {
   // Cache hit — free!
   const hit = cache[cKey(cacheKey)];
   if (hit) {
+    window._lastCitations = [];
     showAns(hit, true, 0);
     stats.a++; stats.c++;
     localStorage.setItem('amStats', JSON.stringify(stats));
