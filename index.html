@@ -705,6 +705,7 @@ async function ask() {
     }
 
     const d = await res.json();
+    const citations = Array.isArray(d?.citations) ? d.citations : [];
     const completions = d?.data?.completions;
     lastBikaRecordId = typeof d?.recordId === 'string' ? d.recordId : null;
     if (completions) {
@@ -731,6 +732,7 @@ async function ask() {
     if (keys.length > 300) delete cache[keys[0]];
     localStorage.setItem('amCache', JSON.stringify(cache));
 
+    window._lastCitations = citations;
     showAns(ans, false, coins);
     stats.a++;
     stats.co = (parseFloat(stats.co) + parseFloat(coins)).toFixed(2);
@@ -841,6 +843,27 @@ function showAns(text, cached, coins) {
   if (qEcho) qEcho.textContent = question;
   if (question && !cached) saveRecentQuestion(question, text);
   document.getElementById('ansText').innerHTML = mdToHtml(text);
+  // Remove old citations if any
+  const oldCitations = document.getElementById('citationsBlock');
+  if (oldCitations) oldCitations.remove();
+
+  // Render citations if present
+  if (window._lastCitations && window._lastCitations.length > 0) {
+    const citBlock = document.createElement('div');
+    citBlock.id = 'citationsBlock';
+    citBlock.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid rgba(232,131,42,.18)';
+    citBlock.innerHTML = `
+    <p style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:rgba(232,131,42,.65);margin-bottom:8px;font-family:\'Crimson Pro\',serif">📜 Sources from Vachanamrut</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      ${window._lastCitations.map(c => `
+        <span style="font-size:12px;background:rgba(232,131,42,.1);border:1px solid rgba(232,131,42,.25);border-radius:999px;padding:3px 10px;color:rgba(232,220,200,.75);font-family:\'Crimson Pro\',serif;font-style:italic">
+          ${c.section}, p.${c.page_start} · ${c.similarity}% match
+        </span>
+      `).join('')}
+    </div>
+  `;
+    document.getElementById('answerScroll').appendChild(citBlock);
+  }
   document.getElementById('cTag').style.display = 'inline-block';
   const c = document.getElementById('ansCard');
   c.classList.add('show');
