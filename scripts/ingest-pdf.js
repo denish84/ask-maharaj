@@ -49,18 +49,26 @@ async function getEmbedding(text, retries = 5) {
 function chunkText(pages) {
   const chunks = [];
   for (const { text, pageNum } of pages) {
+    const firstLine = text.split(/\r?\n/)[0] || text;
+    const section = detectSection(firstLine);
     let start = 0;
     while (start < text.length) {
       const end = start + CHUNK_SIZE;
       chunks.push({
         content: text.slice(start, end),
         page_start: pageNum,
-        page_end: pageNum
+        page_end: pageNum,
+        section
       });
       start += CHUNK_SIZE - CHUNK_OVERLAP;
     }
   }
   return chunks;
+}
+
+function detectSection(text) {
+  const match = text.match(/^(GADHADÃ\s*[I]+|SÃRANGPUR|KÃRIYÃNI|LOYÃ|PANCHÃLÃ|VADTÃL|AMDÃVÃD|JETALPUR)/i);
+  return match ? match[1].trim() : null;
 }
 
 async function main() {
@@ -98,10 +106,12 @@ async function main() {
     for (let j = 0; j < batch.length; j++) {
       const i = batchStart + j;
       const chunk = batch[j];
+      const section = chunk.section || 'Unknown';
       const { data: existing } = await supabase
         .from('chunks')
         .select('id')
         .eq('content', chunk.content)
+        .eq('section', section)
         .maybeSingle();
 
       if (existing) {
@@ -162,6 +172,7 @@ async function main() {
           content: chunk.content,
           page_start: chunk.page_start,
           page_end: chunk.page_end,
+          section: chunk.section || 'Unknown',
           embedding
         };
       })
