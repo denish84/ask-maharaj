@@ -253,7 +253,11 @@ async function embedQuestion(text) {
 
 async function retrieveContext(question) {
   const embedding = await embedQuestion(question);
-  if (!embedding) return { context: '', citations: [] };
+  if (!embedding) {
+    console.error('[RAG] embedQuestion returned null');
+    return { context: '', citations: [] };
+  }
+  console.log('[RAG] embedding generated, length:', embedding.length);
 
   const { data: chunks, error } = await supabase.rpc('match_chunks', {
     query_embedding: embedding,
@@ -261,7 +265,14 @@ async function retrieveContext(question) {
     match_count: RETRIEVAL_MATCH_COUNT
   });
 
-  if (error || !chunks?.length) return { context: '', citations: [] };
+  if (error) {
+    console.error('[RAG] match_chunks error:', error.message);
+    return { context: '', citations: [] };
+  }
+
+  console.log('[RAG] chunks retrieved:', chunks?.length ?? 0);
+
+  if (!chunks?.length) return { context: '', citations: [] };
 
   const citations = chunks.map(c => ({
     section: c.section,
