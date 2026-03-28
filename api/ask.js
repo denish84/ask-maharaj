@@ -177,7 +177,15 @@ async function logToBika({
   }
 
   if (!resp.ok) {
-    console.error('[Bika log failed]', resp.status, textBody || parsed);
+    console.error('[Bika log failed] status:', resp.status);
+    console.error('[Bika log failed] body:', textBody);
+    console.error('[Bika log failed] url:', getBikaRecordsBaseUrl());
+    console.error('[Bika log failed] cells sent:', JSON.stringify({
+      Status: status,
+      Question: query?.slice(0, 50),
+      Language: lang,
+      Coins: priceTotal
+    }));
     return {
       ok: false,
       recordId: null,
