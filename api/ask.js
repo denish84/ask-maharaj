@@ -59,19 +59,14 @@ const LANG_SUFFIXES = {
     gu: 'IMPORTANT: You must answer in Gujarati script only. Every single character in your response must be Gujarati Unicode (U+0A80–U+0AFF) or standard punctuation. Do not use any Latin, Devanagari, Arabic, Urdu, Cyrillic, or any other script characters anywhere in your response, including inside headings and bullet points. For verbs meaning "said" or "explained", always use કહ્યું છે or વર્ણન કર્યું છે — never Urdu-origin words like farmaya or فرمایا.'
 };
 
-// Bika.ai (temporary inline defaults; move to .env later)
-const BIKA_API_TOKEN =
-  process.env.BIKA_API_TOKEN ||
-  'bktuaZzDjU3ukrVPFXQsSCjhioYnYiuabwr';
-const BIKA_SPACE_ID =
-  process.env.BIKA_SPACE_ID ||
-  'spc6FAjCrHVa6VHNbXte8viT';
-const BIKA_NODE_ID =
-  process.env.BIKA_NODE_ID ||
-  'datbO2aMFaOn3xmtiTAAEnPj';
+// Bika.ai — set BIKA_API_TOKEN, BIKA_SPACE_ID, BIKA_NODE_ID in .env / Vercel (no repo fallbacks)
+const BIKA_API_TOKEN = process.env.BIKA_API_TOKEN || '';
+const BIKA_SPACE_ID = process.env.BIKA_SPACE_ID || '';
+const BIKA_NODE_ID = process.env.BIKA_NODE_ID || '';
 
-function getBikaRecordsBaseUrl() {
-  return `https://bika.ai/api/openapi/bika/v1/spaces/${BIKA_SPACE_ID}/resources/databases/${BIKA_NODE_ID}/records`;
+/** APITable-compatible Fusion API (native bika/v1 records endpoint often returns 500). */
+function getBikaFusionRecordsUrl() {
+  return `https://bika.ai/api/openapi/apitable/fusion/v1/datasheets/${BIKA_NODE_ID}/records`;
 }
 
 function getShortBrowserName(userAgent) {
@@ -123,7 +118,6 @@ async function logToBika({
   aiResponse,
   ip,
   locationString,
-  userAgent,
   browserName,
   deviceType,
   osName,
@@ -141,31 +135,30 @@ async function logToBika({
     };
   }
 
-  const resp = await fetch(getBikaRecordsBaseUrl(), {
+  const coins = Number(priceTotal);
+  const fields = {
+    Status: status,
+    Question: query,
+    Answer: aiResponse,
+    Coins: Number.isFinite(coins) ? coins : 0,
+    IP: ip,
+    Location: locationString,
+    Browser: browserName,
+    Device: deviceType,
+    OS: osName,
+    ResponseMs: responseTime,
+    QuestionLength: questionLen,
+    Language: lang,
+    Reaction: ''
+  };
+
+  const resp = await fetch(getBikaFusionRecordsUrl(), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${BIKA_API_TOKEN}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      cells: {
-        Status: status,
-        Question: query,
-        Answer: aiResponse,
-        Coins: Number(priceTotal),
-        IP: ip,
-        Location: locationString,
-        UserAgent: userAgent,
-        Browser: browserName,
-        Device: deviceType,
-        OS: osName,
-        ResponseMs: responseTime,
-        QuestionLength: questionLen,
-        Language: lang,
-        CacheHit: false,
-        Reaction: ''
-      }
-    })
+    body: JSON.stringify({ records: [{ fields }] })
   });
 
   const textBody = await resp.text().catch(() => '');
@@ -179,7 +172,7 @@ async function logToBika({
   if (!resp.ok) {
     console.error('[Bika log failed] status:', resp.status);
     console.error('[Bika log failed] body:', textBody);
-    console.error('[Bika log failed] url:', getBikaRecordsBaseUrl());
+    console.error('[Bika log failed] url:', getBikaFusionRecordsUrl());
     console.error('[Bika log failed] cells sent:', JSON.stringify({
       Status: status,
       Question: query?.slice(0, 50),
@@ -200,7 +193,11 @@ async function logToBika({
 
   return {
     ok: true,
-    recordId: parsed?.data?.id || parsed?.id || null,
+    recordId:
+      parsed?.data?.records?.[0]?.recordId ||
+      parsed?.data?.id ||
+      parsed?.id ||
+      null,
     status: resp.status,
     error: null
   };
@@ -482,7 +479,6 @@ export default async function handler(req, res) {
         priceTotal: totalCoins,
         ip: String(ip || 'unknown'),
         locationString,
-        userAgent: fullUserAgent,
         browserName,
         deviceType,
         osName,
@@ -514,7 +510,6 @@ export default async function handler(req, res) {
         priceTotal: 0,
         ip: String(ip || 'unknown'),
         locationString,
-        userAgent: fullUserAgent,
         browserName,
         deviceType,
         osName,

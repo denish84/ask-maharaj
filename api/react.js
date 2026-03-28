@@ -3,16 +3,10 @@ const ALLOWED_ORIGINS = new Set([
   'https://www.ask-maharaj.vercel.app'
 ]);
 
-// Bika.ai (temporary inline defaults; move to .env later)
-const BIKA_API_TOKEN =
-  process.env.BIKA_API_TOKEN ||
-  'bktuaZzDjU3ukrVPFXQsSCjhioYnYiuabwr';
-const BIKA_SPACE_ID =
-  process.env.BIKA_SPACE_ID ||
-  'spc6FAjCrHVa6VHNbXte8viT';
-const BIKA_NODE_ID =
-  process.env.BIKA_NODE_ID ||
-  'datbO2aMFaOn3xmtiTAAEnPj';
+// Bika.ai — same env vars as api/ask.js (no repo fallbacks)
+const BIKA_API_TOKEN = process.env.BIKA_API_TOKEN || '';
+const BIKA_SPACE_ID = process.env.BIKA_SPACE_ID || '';
+const BIKA_NODE_ID = process.env.BIKA_NODE_ID || '';
 
 function setCorsHeaders(res, origin) {
   if (!origin) return;
@@ -45,9 +39,8 @@ function isAllowedOrigin(origin, req) {
   }
 }
 
-function getBikaRecordUrl(recordId) {
-  const base = `https://bika.ai/api/openapi/bika/v1/spaces/${BIKA_SPACE_ID}/resources/databases/${BIKA_NODE_ID}/records`;
-  return `${base}/${encodeURIComponent(recordId)}`;
+function getBikaFusionRecordsUrl() {
+  return `https://bika.ai/api/openapi/apitable/fusion/v1/datasheets/${BIKA_NODE_ID}/records`;
 }
 
 export default async function handler(req, res) {
@@ -86,16 +79,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'INVALID_INPUT' });
   }
 
-  const resp = await fetch(getBikaRecordUrl(recordId), {
+  const resp = await fetch(getBikaFusionRecordsUrl(), {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${BIKA_API_TOKEN}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      cells: {
-        Reaction: reactionId
-      }
+      records: [{ recordId, fields: { Reaction: reactionId } }]
     })
   });
 
