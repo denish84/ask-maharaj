@@ -362,23 +362,15 @@ tailwind.config = {
   }
   .daily-inner {
     display: flex;
-    gap: 16px;
+    flex-direction: column;
     align-items: stretch;
+    gap: 0;
     background: linear-gradient(135deg, rgba(245,166,35,0.06) 0%, rgba(139,90,43,0.08) 100%);
     border: 1px solid rgba(245,166,35,0.25);
     border-radius: 12px;
-    padding: 20px 20px 16px;
+    padding: 16px 18px 14px;
     position: relative;
     overflow: hidden;
-  }
-  .daily-inner::before {
-    content: '❧';
-    position: absolute;
-    top: 8px; right: 14px;
-    font-size: 28px;
-    color: rgba(245,166,35,0.15);
-    font-family: serif;
-    line-height: 1;
   }
   .daily-inner::after {
     content: '';
@@ -387,52 +379,86 @@ tailwind.config = {
     height: 2px;
     background: linear-gradient(90deg, transparent, rgba(245,166,35,0.4), transparent);
   }
-  .daily-left {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    min-width: 32px;
+  .daily-om {
+    text-align: center;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: rgba(245,166,35,0.38);
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 10px rgba(245,166,35,0.12));
   }
-  .daily-section-label {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: rgba(245,166,35,0.6);
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .daily-vline {
-    flex: 1;
-    width: 1px;
-    background: linear-gradient(to bottom, transparent, rgba(245,166,35,0.4), transparent);
-  }
-  .daily-center { flex: 1; }
   .daily-eyebrow {
     font-size: 9px;
-    letter-spacing: 3px;
-    color: rgba(245,166,35,0.5);
-    margin-bottom: 10px;
+    letter-spacing: 0.26em;
+    color: rgba(245,166,35,0.55);
+    margin-bottom: 12px;
     text-align: center;
+    font-weight: 600;
   }
-  .daily-text {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 14px;
-    line-height: 1.75;
-    color: rgba(255,255,255,0.85);
-    margin: 0 0 12px;
-    padding: 0;
+  .daily-text.daily-text--scripture {
+    font-family: Georgia, 'Times New Roman', 'Noto Serif Gujarati', serif;
+    font-size: 15px;
+    line-height: 1.85;
+    color: rgba(255,255,255,0.88);
+    margin: 0 0 14px;
+    padding: 0 2px;
     border: none;
     font-style: italic;
+    text-align: center;
   }
-  .daily-meta {
-    font-size: 11px;
-    color: rgba(245,166,35,0.7);
-    text-align: right;
-    letter-spacing: 0.5px;
+  #dailyBanner.daily-lang-gu .daily-text.daily-text--scripture {
+    font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
   }
+  .daily-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .daily-pill {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(245,166,35,0.72);
+    background: rgba(245,166,35,0.07);
+    border: 1px solid rgba(245,166,35,0.2);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-family: 'Crimson Pro', Georgia, serif;
+    max-width: 100%;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .daily-pill--ref {
+    text-transform: none;
+    letter-spacing: 0.04em;
+    font-style: italic;
+  }
+  .daily-share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+    padding: 9px 14px;
+    border: 1px solid rgba(37, 211, 102, 0.45);
+    border-radius: 10px;
+    background: rgba(37, 211, 102, 0.12);
+    color: rgba(200, 255, 220, 0.95);
+    font-family: 'Crimson Pro', serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease;
+  }
+  .daily-share-btn:hover {
+    background: rgba(37, 211, 102, 0.2);
+    border-color: rgba(37, 211, 102, 0.65);
+  }
+  .daily-share-btn:active { transform: scale(0.98); }
 </style>
 </head>
 <body class="bg-[#0f0600] text-[#fdf6ec] overflow-x-hidden overflow-y-auto" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-top:max(env(safe-area-inset-top,0),24px);padding-bottom:max(env(safe-area-inset-bottom,0),24px)">
@@ -521,17 +547,13 @@ tailwind.config = {
     <p class="text-[.65rem] uppercase tracking-[.14em] mt-4" style="color:rgba(245,200,155,.88)">Swaminarayan Satsang · Surat</p>
   </header>
 
-  <div id="dailyBanner" style="display:none">
+  <div id="dailyBanner" class="daily-lang-en" style="display:none">
     <div class="daily-inner">
-      <div class="daily-left">
-        <span class="daily-section-label" id="dailySection"></span>
-        <div class="daily-vline"></div>
-      </div>
-      <div class="daily-center">
-        <div class="daily-eyebrow">✦ TODAY'S TEACHING ✦</div>
-        <blockquote class="daily-text" id="dailyText"></blockquote>
-        <div class="daily-meta" id="dailyMeta"></div>
-      </div>
+      <div class="daily-om" aria-hidden="true">ॐ</div>
+      <div class="daily-eyebrow" id="dailyWisdomTitle">✦ Daily Wisdom ✦</div>
+      <blockquote class="daily-text daily-text--scripture" id="dailyText"></blockquote>
+      <div class="daily-pills-row" id="dailyPills" aria-label="Source"></div>
+      <button type="button" class="daily-share-btn" id="dailyShareBtn" onclick="shareDailyWisdom()">Share on WhatsApp</button>
     </div>
   </div>
 
@@ -756,6 +778,8 @@ const LANG_STRINGS = {
     limitMsg: `🙏 Daily limit of ${DAILY_QUESTION_LIMIT} questions reached. Come back tomorrow. Jai Swaminarayan 🙏`,
     langSuffix: 'IMPORTANT: You must answer in English only.',
     exploreDeeperTitle: 'Explore Deeper',
+    dailyWisdomTitle: '✦ Daily Wisdom ✦',
+    dailyShareWhatsApp: 'Share on WhatsApp',
     deepQuestions: [
       { label: '🏛️ Five Eternal Entities', q: 'Who are the five eternal entities (Panch-Tattva) that govern the universe?' },
       { label: '🧘 Path to Liberation', q: 'What are the four pillars of Ekantik Dharma — Dharma, Gnan, Vairagya, and Bhakti?' },
@@ -785,6 +809,8 @@ const LANG_STRINGS = {
     limitMsg: `🙏 આજની ${DAILY_QUESTION_LIMIT} પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏`,
     langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
     exploreDeeperTitle: 'ઊંડાણથી જાણો',
+    dailyWisdomTitle: '✦ આજનો વિચાર ✦',
+    dailyShareWhatsApp: 'વોટ્સએપ પર શેર કરો',
     deepQuestions: [
       { label: '🏛️ પંચ તત્વ', q: 'બ્રહ્માંડનું સંચાલન કરતા પાંચ અનાદિ તત્વો (પંચ-તત્વ) કયા છે?' },
       { label: '🧘 મોક્ષનો માર્ગ', q: 'એકાંતિક ધર્મના ચાર સ્તંભો — ધર્મ, જ્ઞાન, વૈરાગ્ય અને ભક્તિ — શું છે?' },
@@ -865,6 +891,8 @@ function setLang(lang) {
 
   document.getElementById('langEn').classList.toggle('lang-active', lang === 'en');
   document.getElementById('langGu').classList.toggle('lang-active', lang === 'gu');
+
+  syncDailyBannerChrome(lang);
 }
 
 function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0,120); }
@@ -1340,6 +1368,70 @@ hideAns = function() {
   hideReactions();
 };
 
+function escDailyHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderDailyPills(d) {
+  const el = document.getElementById('dailyPills');
+  if (!el || !d) return;
+  const pills = [];
+  if (d.section) pills.push(`<span class="daily-pill">${escDailyHtml(d.section)}</span>`);
+  const refParts = [];
+  if (d.vachanamrut_number) refParts.push(d.vachanamrut_number);
+  if (d.page_start != null && d.page_start !== '') refParts.push(`p.${d.page_start}`);
+  if (refParts.length) {
+    pills.push(
+      `<span class="daily-pill daily-pill--ref">${escDailyHtml(refParts.join(' · '))}</span>`
+    );
+  }
+  el.innerHTML = pills.join('');
+}
+
+function syncDailyBannerChrome(lang) {
+  const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
+  const title = document.getElementById('dailyWisdomTitle');
+  const btn = document.getElementById('dailyShareBtn');
+  const banner = document.getElementById('dailyBanner');
+  if (title) title.textContent = s.dailyWisdomTitle;
+  if (btn) {
+    btn.textContent = s.dailyShareWhatsApp;
+    btn.classList.toggle('font-gujarati', lang === 'gu');
+  }
+  const pillsEl = document.getElementById('dailyPills');
+  if (pillsEl) pillsEl.classList.toggle('font-gujarati', lang === 'gu');
+  if (banner) {
+    banner.classList.toggle('daily-lang-gu', lang === 'gu');
+    banner.classList.toggle('daily-lang-en', lang === 'en');
+  }
+}
+
+function shareDailyWisdom() {
+  const p = window._lastDailyPayload;
+  if (!p || !p.content) return;
+  const lang = localStorage.getItem('amLang') || 'en';
+  const heading =
+    lang === 'gu' ? 'આજનો વિચાર · Ask Maharaj' : 'Daily Wisdom · Ask Maharaj';
+  const ref = [
+    p.section,
+    p.vachanamrut_number,
+    p.page_start != null && p.page_start !== '' ? `p.${p.page_start}` : ''
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const t =
+    '🕉 *' +
+    heading +
+    '*\n\n' +
+    p.content +
+    (ref ? '\n\n_' + ref + '_' : '') +
+    '\n\n👉 https://ask-maharaj.vercel.app';
+  window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+}
+
 async function loadDailyTeaching() {
   try {
     const res = await fetch('/api/daily');
@@ -1347,12 +1439,12 @@ async function loadDailyTeaching() {
     const d = await res.json();
     if (!d.content) return;
 
+    window._lastDailyPayload = d;
     document.getElementById('dailyText').textContent = d.content;
-    document.getElementById('dailySection').textContent = d.section || '';
-    const ref = d.vachanamrut_number || d.section || '';
-    const pagePart =
-      d.page_start != null && d.page_start !== '' ? ' · p.' + d.page_start : '';
-    document.getElementById('dailyMeta').textContent = ref + pagePart;
+    renderDailyPills(d);
+
+    const lang = localStorage.getItem('amLang') || 'en';
+    syncDailyBannerChrome(lang);
 
     const banner = document.getElementById('dailyBanner');
     banner.style.display = 'block';

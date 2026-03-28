@@ -6,29 +6,33 @@ const supabase = createClient(
 );
 
 /**
- * PostgREST OR of ilike filters — teaching / direct-instruction cues (English + Gujarati).
- * Avoids bare "explained"/"stated" (too much narrative).
+ * Phrases that signal direct teaching / Maharaj’s words (English + Gujarati).
+ * Used for Supabase `or` filter and for “skip long history intro” in the handler.
  */
-const TEACHING_CONTENT_OR = [
-  'content.ilike.%Maharaj said%',
-  'content.ilike.%one should%',
-  'content.ilike.%one must%',
-  'content.ilike.%ought to%',
-  'content.ilike.%a devotee%',
-  'content.ilike.%a devotee must%',
-  'content.ilike.%it is essential%',
-  'content.ilike.%Shriji Maharaj%',
-  'content.ilike.%Maharaj explained%',
-  'content.ilike.%Shriji Maharaj explained%',
-  'content.ilike.%Maharaj stated%',
-  'content.ilike.%Shriji Maharaj stated%',
-  'content.ilike.%મહારાજે કહ્યું%',
-  'content.ilike.%શ્રીજી મહારાજે%',
-  'content.ilike.%કહે છે કે%',
-  'content.ilike.%જોઈએ કે%',
-  'content.ilike.%અનિવાર્ય છે%',
-  'content.ilike.%ભક્તે જોઈએ%'
-].join(',');
+const TEACHING_PHRASES = [
+  'Maharaj said',
+  'one should',
+  'one must',
+  'ought to',
+  'a devotee',
+  'a devotee must',
+  'it is essential',
+  'Shriji Maharaj',
+  'Maharaj explained',
+  'Shriji Maharaj explained',
+  'Maharaj stated',
+  'Shriji Maharaj stated',
+  'મહારાજે કહ્યું',
+  'શ્રીજી મહારાજે',
+  'કહે છે કે',
+  'જોઈએ કે',
+  'અનિવાર્ય છે',
+  'ભક્તે જોઈએ'
+];
+
+const TEACHING_CONTENT_OR = TEACHING_PHRASES.map(
+  p => `content.ilike.%${p}%`
+).join(',');
 
 /** Drop long printed headings before standard English Vachanamrut date intro (e.g. "Gadhadã I – 74 … In the Samvat year"). */
 function stripThroughSamvatIntro(s) {
@@ -38,6 +42,57 @@ function stripThroughSamvatIntro(s) {
   if (!m || m.index <= 0) return t;
   if (m.index > 900) return t;
   return t.slice(m.index).trim();
+}
+
+/**
+ * If narrative intro is long (>200 chars before first cue), start near teaching:
+ * first teaching phrase or opening quote (curly/straight), snapped to sentence or word boundary.
+ */
+function skipLongHistoryIntro(s) {
+  const t = s.trim();
+  if (t.length <= 200) return t;
+
+  let anchor = -1;
+
+  const lower = t.toLowerCase();
+  for (const phrase of TEACHING_PHRASES) {
+    const p = phrase.toLowerCase();
+    let from = 0;
+    let idx;
+    while ((idx = lower.indexOf(p, from)) !== -1) {
+      if (idx > 200 && (anchor === -1 || idx < anchor)) anchor = idx;
+      from = idx + 1;
+    }
+  }
+
+  const quoteRe = /[""«]/g;
+  let qm;
+  while ((qm = quoteRe.exec(t)) !== null) {
+    if (qm.index > 200 && (anchor === -1 || qm.index < anchor)) anchor = qm.index;
+  }
+
+  if (anchor === -1) return t;
+
+  const start = smartSliceStartBefore(t, anchor);
+  return t.slice(start).trim();
+}
+
+/** Prefer start after last .!? + space within 120 chars before anchor; else after last space in 80 chars. */
+function smartSliceStartBefore(t, anchor) {
+  const backMin = Math.max(0, anchor - 120);
+  for (let i = anchor - 1; i >= backMin; i--) {
+    const ch = t[i];
+    if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t[i + 1] || '')) {
+      let j = i + 1;
+      while (j < t.length && /\s/.test(t[j])) j++;
+      return j;
+    }
+  }
+  const winMin = Math.max(0, anchor - 80);
+  const win = t.slice(winMin, anchor);
+  const sp = win.lastIndexOf(' ');
+  if (sp !== -1) return winMin + sp + 1;
+  return anchor;
 }
 
 /** If excerpt starts mid-sentence (lowercase), skip to after the first full stop + capital opener. */
@@ -106,23 +161,24 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Could not fetch daily teaching' });
   }
 
-  // Clean full chunk first so we don't slice away anchors like "In the Samvat year"
   let content = String(data.content || '');
 
-  // Strip leading discourse header (e.g. "GADHADĀ I - 181 - ") that PDF ingest left on the chunk
   content = content
     .replace(/^\s*[\p{L}\s]+\s*[IVXivx]*\s*[-–]\s*\d+\s*[-–]\s*/u, '')
     .trim();
 
   content = stripThroughSamvatIntro(content);
+  content = skipLongHistoryIntro(content);
 
-  // Trim to first 400 chars at sentence boundary (after structural strips)
-  content = content.slice(0, 400);
-  const lastPeriod = content.lastIndexOf('.');
-  if (lastPeriod > 100) content = content.slice(0, lastPeriod + 1);
+  const capped = content.slice(0, 400);
+  const lastPeriod = capped.lastIndexOf('.');
+  let excerpt = lastPeriod > 100 ? capped.slice(0, lastPeriod + 1) : capped;
+  if (excerpt.length < 150) excerpt = capped;
+
+  content = excerpt;
 
   content = content
-    .replace(/\b\d+\.\d+\s*/g, '') // footnote-style refs (e.g. 35.7); word-boundary avoids glued digits
+    .replace(/\b\d+\.\d+\s*/g, '')
     .replace(/^\s*(Then|Also|However|But|And|So)\b,?\s*/i, '')
     .trim();
 
@@ -131,7 +187,7 @@ export default async function handler(req, res) {
   content = content.replace(
     /([\p{L}\p{M}\p{N}]+)-\s+([\p{L}\p{M}\p{N}]+)/gu,
     '$1-$2'
-  ); // e.g. "Gangã- water" → "Gangã-water" (PDF line-break hyphen)
+  );
 
   return res.status(200).json({
     content,
