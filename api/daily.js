@@ -30,6 +30,25 @@ const TEACHING_CONTENT_OR = [
   'content.ilike.%ભક્તે જોઈએ%'
 ].join(',');
 
+/** If excerpt starts mid-sentence (lowercase), skip to after the first full stop + capital opener. */
+function trimMidSentenceStart(s) {
+  const t = s.trim();
+  if (t.length < 25) return t;
+  if (!/^[a-z]/.test(t)) return t;
+  const max = Math.min(t.length, 280);
+  for (let i = 15; i < max; i++) {
+    if (t[i] !== '.') continue;
+    let j = i + 1;
+    while (j < t.length && /\s/.test(t[j])) j++;
+    if (j < t.length && /[A-Z"“]/.test(t[j])) {
+      const rest = t.slice(j).trim();
+      if (rest.length >= 40) return rest;
+      return t;
+    }
+  }
+  return t;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=3600');
@@ -88,9 +107,12 @@ export default async function handler(req, res) {
     .trim();
 
   content = content
-    .replace(/\d+\.\d+\s*/g, '') // footnote-style refs (e.g. 35.7); removes all such tokens in the snippet
+    .replace(/\b\d+\.\d+\s*/g, '') // footnote-style refs (e.g. 35.7); word-boundary avoids glued digits
     .replace(/^\s*(Then|Also|However|But|And|So)\b,?\s*/i, '')
     .trim();
+
+  content = trimMidSentenceStart(content);
+  content = content.replace(/\s+/g, ' ').trim();
 
   return res.status(200).json({
     content,
