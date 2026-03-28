@@ -841,17 +841,31 @@ function mdToHtml(text) {
     .replace(/^#{1,3}\s+(.+)$/gm, '<p style="font-weight:600;margin:10px 0 4px;color:#f5a623">$1</p>')
     // bold
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // numbered lists (before bullet + italic so "1. " lines are not parsed as bullets/italic)
+    .replace(/^\s*(\d+)\.\s+(.+)$/gm, (_, num, line) => {
+      const t = String(line).trim();
+      return t
+        ? `<li class="num-item" style="margin:4px 0;padding-left:4px">${t}</li>`
+        : '';
+    })
     // bullet lists (* must run before italic so "* item" is not half-parsed)
     .replace(/^[-•*●]\s+(.+)$/gm, (_, line) => {
       const t = String(line).trim();
       return t
-        ? '<li style="margin:2px 0;padding-left:4px">' + t + '</li>'
+        ? '<li class="md-li-b" style="margin:2px 0;padding-left:4px">' + t + '</li>'
         : '';
     })
     // italic
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // wrap consecutive <li> in <ul>
-    .replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:6px 0;padding-left:18px;list-style:disc">$&</ul>')
+    // wrap consecutive bullet <li> in <ul> (exclude num-item so <ol> wrap can run separately)
+    .replace(
+      /(<li class="md-li-b"[^>]*>[\s\S]*?<\/li>\n?)+/g,
+      '<ul style="margin:6px 0;padding-left:18px;list-style:disc">$&</ul>'
+    )
+    .replace(
+      /(<li class="num-item"[^>]*>[\s\S]*?<\/li>\n?)+/g,
+      '<ol style="margin:8px 0;padding-left:20px;list-style:decimal">$&</ol>'
+    )
     // horizontal rules
     .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid rgba(232,131,42,.2);margin:12px 0">')
     // true paragraph break only on blank lines
@@ -862,6 +876,8 @@ function mdToHtml(text) {
     .replace(/<\/li><br>\s*<li/g, '</li><li')
     .replace(/<ul[^>]*><br>/g, m => m.replace('<br>', ''))
     .replace(/<br>\s*<\/ul>/g, '</ul>')
+    .replace(/<ol[^>]*><br>/g, m => m.replace('<br>', ''))
+    .replace(/<br>\s*<\/ol>/g, '</ol>')
     .replace(/(<br>\s*){3,}/g, '<br><br>')
     // tighten accidental multi-space runs after newline normalization
     .replace(/[ \t]{2,}/g, ' ');
