@@ -113,6 +113,10 @@ export default async function handler(req, res) {
 
   content = trimMidSentenceStart(content);
   content = content.replace(/\s+/g, ' ').trim();
+  content = content.replace(
+    /([\p{L}\p{M}\p{N}]+)-\s+([\p{L}\p{M}\p{N}]+)/gu,
+    '$1-$2'
+  ); // e.g. "Gangã- water" → "Gangã-water" (PDF line-break hyphen)
 
   return res.status(200).json({
     content,
