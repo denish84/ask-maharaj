@@ -162,6 +162,8 @@ async function logToBika({
         ResponseMs: responseTime,
         QuestionLength: questionLen,
         Language: lang,
+        CacheHit: false,
+        Reaction: ''
       }
     })
   });
