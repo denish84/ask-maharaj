@@ -846,6 +846,14 @@ const LANG_STRINGS = {
   }
 };
 
+function updateDailyTitle(lang) {
+  const dailyTitle = document.getElementById('dailyTitle');
+  if (dailyTitle) {
+    dailyTitle.textContent =
+      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut · આજનું વચનામૃત';
+  }
+}
+
 function setLang(lang) {
   const switched = lastUiLang !== null && lastUiLang !== lang;
   lastUiLang = lang;
@@ -915,12 +923,6 @@ function setLang(lang) {
 
   document.getElementById('langEn').classList.toggle('lang-active', lang === 'en');
   document.getElementById('langGu').classList.toggle('lang-active', lang === 'gu');
-
-  const dailyTitle = document.getElementById('dailyTitle');
-  if (dailyTitle) {
-    dailyTitle.textContent =
-      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut · આજનું વચનામૃત';
-  }
 
   syncDailyBannerChrome(lang);
 }
@@ -1423,11 +1425,7 @@ function renderDailyPills(d) {
 
 function syncDailyBannerChrome(lang) {
   const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
-  const dailyTitle = document.getElementById('dailyTitle');
-  if (dailyTitle) {
-    dailyTitle.textContent =
-      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut · આજનું વચનામૃત';
-  }
+  updateDailyTitle(lang);
   const btn = document.getElementById('dailyShareBtn');
   const banner = document.getElementById('dailyBanner');
   if (btn) {
