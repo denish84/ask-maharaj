@@ -582,7 +582,7 @@ tailwind.config = {
   <div id="dailyBanner" class="daily-lang-en" style="display:none">
     <div class="daily-inner">
       <div class="daily-card-flourish" aria-hidden="true">✦</div>
-      <div class="daily-eyebrow" id="dailyTitle">Aaj nu Vachanamrut · આજનું વચનામૃત</div>
+      <div class="daily-eyebrow" id="dailyTitle">Aaj nu Vachanamrut</div>
       <blockquote class="daily-text daily-text--scripture" id="dailyText"></blockquote>
       <p class="daily-lang-note" id="dailyLangNote" aria-hidden="true">(મૂળ અંગ્રેજી અનુવાદ)</p>
       <div class="daily-pills-row" id="dailyPills" aria-label="Source"></div>
@@ -865,7 +865,7 @@ function updateDailyTitle(lang) {
   const dailyTitle = document.getElementById('dailyTitle');
   if (dailyTitle) {
     dailyTitle.textContent =
-      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut · આજનું વચનામૃત';
+      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut';
   }
 }
 
