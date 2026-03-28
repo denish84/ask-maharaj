@@ -347,6 +347,90 @@ tailwind.config = {
     100% { transform: scale(1)   translateY(-2px); }
   }
   .reaction-btn.selected { animation: reactionPop .32s cubic-bezier(.34,1.56,.64,1) both; }
+
+  #dailyBanner {
+    margin: 0 0 24px;
+    padding: 0 4px;
+    animation: dailyFadeIn 1.2s ease forwards;
+    opacity: 0;
+  }
+  @keyframes dailyFadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .daily-inner {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+    background: linear-gradient(135deg, rgba(245,166,35,0.06) 0%, rgba(139,90,43,0.08) 100%);
+    border: 1px solid rgba(245,166,35,0.25);
+    border-radius: 12px;
+    padding: 20px 20px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .daily-inner::before {
+    content: '॥';
+    position: absolute;
+    top: 8px; right: 14px;
+    font-size: 28px;
+    color: rgba(245,166,35,0.15);
+    font-family: serif;
+    line-height: 1;
+  }
+  .daily-inner::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(245,166,35,0.4), transparent);
+  }
+  .daily-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 32px;
+  }
+  .daily-section-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(245,166,35,0.6);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .daily-vline {
+    flex: 1;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, rgba(245,166,35,0.4), transparent);
+  }
+  .daily-center { flex: 1; }
+  .daily-eyebrow {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: rgba(245,166,35,0.5);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .daily-text {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 14px;
+    line-height: 1.75;
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 12px;
+    padding: 0;
+    border: none;
+    font-style: italic;
+  }
+  .daily-meta {
+    font-size: 11px;
+    color: rgba(245,166,35,0.7);
+    text-align: right;
+    letter-spacing: 0.5px;
+  }
 </style>
 </head>
 <body class="bg-[#0f0600] text-[#fdf6ec] overflow-x-hidden overflow-y-auto" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-top:max(env(safe-area-inset-top,0),24px);padding-bottom:max(env(safe-area-inset-bottom,0),24px)">
@@ -434,6 +518,20 @@ tailwind.config = {
     <p class="italic font-light text-[1.05rem] mb-1" style="color:rgba(232,220,200,.72)">Vachanamrut ni Vaat, Maharaj ni Saath</p>
     <p class="text-[.65rem] uppercase tracking-[.14em] mt-4" style="color:rgba(245,200,155,.88)">Swaminarayan Satsang · Surat</p>
   </header>
+
+  <div id="dailyBanner" style="display:none">
+    <div class="daily-inner">
+      <div class="daily-left">
+        <span class="daily-section-label" id="dailySection"></span>
+        <div class="daily-vline"></div>
+      </div>
+      <div class="daily-center">
+        <div class="daily-eyebrow">✦ TODAY'S TEACHING ✦</div>
+        <blockquote class="daily-text" id="dailyText"></blockquote>
+        <div class="daily-meta" id="dailyMeta"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- Divider -->
   <div class="flex items-center gap-3 mb-6 opacity-30" style="animation:fadeIn .9s ease .1s both">
@@ -1016,63 +1114,21 @@ function mdToHtml(text) {
     .replace(/[ \t]{2,}/g, ' ');
 }
 
-/** Typewriter effect; grows plain text by word then mdToHtml so tags are never split mid-token. */
-function typeAnswer(text) {
-  const el = document.getElementById('ansText');
-  el.innerHTML = '';
-  const words = String(text).split(/(\s+)/);
-  let i = 0;
-
-  if (window._typeAnswerInterval) clearInterval(window._typeAnswerInterval);
-  if (reactionTimer) clearTimeout(reactionTimer);
-  reactionTimer = null;
-
-  const citStart = document.getElementById('citationsBlock');
-  if (citStart) citStart.style.visibility = 'hidden';
-  const rw = document.getElementById('reactionWrap');
-  if (rw) {
-    rw.style.visibility = 'hidden';
-    rw.style.display = 'none';
-  }
-
-  window._typeAnswerInterval = setInterval(() => {
-    if (i >= words.length) {
-      clearInterval(window._typeAnswerInterval);
-      window._typeAnswerInterval = null;
-      el.innerHTML = mdToHtml(text);
-      const cit = document.getElementById('citationsBlock');
-      if (cit) cit.style.visibility = 'visible';
-      if (rw) {
-        rw.style.visibility = 'visible';
-        rw.style.display = '';
-      }
-      showReactions();
-      return;
-    }
-    if (i % 3 === 0 || i === words.length - 1) {
-      const chunk = words.slice(0, i + 1).join('');
-      el.innerHTML = mdToHtml(chunk);
-      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-    i++;
-  }, 20);
-}
-
 function showAns(text, cached, coins) {
   const question = document.getElementById('q').value.trim();
   const qEcho = document.getElementById('qEcho');
   if (qEcho) qEcho.textContent = question;
   if (question && !cached) saveRecentQuestion(question, text);
+  document.getElementById('ansText').innerHTML = mdToHtml(text);
   // Remove old citations if any
   const oldCitations = document.getElementById('citationsBlock');
   if (oldCitations) oldCitations.remove();
 
-  // Render citations if present (hidden until typeAnswer finishes)
+  // Render citations if present
   if (window._lastCitations && window._lastCitations.length > 0) {
     const citBlock = document.createElement('div');
     citBlock.id = 'citationsBlock';
-    citBlock.style.cssText =
-      'margin-top:16px;padding-top:12px;border-top:1px solid rgba(232,131,42,.18);visibility:hidden';
+    citBlock.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid rgba(232,131,42,.18)';
     citBlock.innerHTML = `
     <p style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:rgba(232,131,42,.65);margin-bottom:8px;font-family:\'Crimson Pro\',serif">📜 Sources from Vachanamrut</p>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -1087,22 +1143,13 @@ function showAns(text, cached, coins) {
   `;
     document.getElementById('answerScroll').appendChild(citBlock);
   }
-
-  typeAnswer(text);
-
   document.getElementById('cTag').style.display = 'inline-block';
   const c = document.getElementById('ansCard');
   c.classList.add('show');
   setTimeout(() => c.scrollIntoView({ behavior: 'smooth', block: 'start' }), 680);
 }
 
-function hideAns() {
-  if (window._typeAnswerInterval) {
-    clearInterval(window._typeAnswerInterval);
-    window._typeAnswerInterval = null;
-  }
-  document.getElementById('ansCard').classList.remove('show');
-}
+function hideAns() { document.getElementById('ansCard').classList.remove('show'); }
 function showErr(m) { const e=document.getElementById('errBox'); e.textContent=m; e.classList.add('show'); }
 function hideErr() { document.getElementById('errBox').classList.remove('show'); }
 
@@ -1278,10 +1325,11 @@ function hideReactions() {
   if (wrap) wrap.style.display = 'none';
 }
 
-// Hook into showAns and hideAns (reactions run after typeAnswer completes inside showAns)
+// Hook into showAns and hideAns
 const _origShowAns = showAns;
 showAns = function(text, cached, coins) {
   _origShowAns.call(this, text, cached, coins);
+  showReactions();
 };
 
 const _origHideAns = hideAns;
@@ -1289,6 +1337,28 @@ hideAns = function() {
   _origHideAns.call(this);
   hideReactions();
 };
+
+async function loadDailyTeaching() {
+  try {
+    const res = await fetch('/api/daily');
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d.content) return;
+
+    document.getElementById('dailyText').textContent = d.content;
+    document.getElementById('dailySection').textContent = d.section || '';
+    const ref = d.vachanamrut_number || d.section || '';
+    const pagePart =
+      d.page_start != null && d.page_start !== '' ? ' · p.' + d.page_start : '';
+    document.getElementById('dailyMeta').textContent = ref + pagePart;
+
+    const banner = document.getElementById('dailyBanner');
+    banner.style.display = 'block';
+  } catch (e) {
+    // Fail silently — banner is non-critical
+  }
+}
+loadDailyTeaching();
 </script>
 </body>
 </html>
