@@ -107,17 +107,21 @@ tailwind.config = {
   .chip {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     background: rgba(232,131,42,.08);
     border: 1px solid rgba(232,131,42,.22);
     border-radius: 999px;
-    padding: 6px 14px;
+    padding: 8px 14px;
     font-size: 13px;
     color: #e8dcc8;
     cursor: pointer;
     transition: all .18s ease;
     font-family: 'Crimson Pro', serif;
     font-style: italic;
-    white-space: nowrap;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.35;
+    max-width: 100%;
   }
   .chip:hover  { background: rgba(232,131,42,.2); border-color: rgba(232,131,42,.42); color: #f5a623; }
   .chip:active { transform: scale(.96); }
@@ -412,13 +416,8 @@ tailwind.config = {
     <textarea id="q" rows="4" dir="ltr"
       placeholder="Ask Maharaj anything... 🙏"></textarea>
 
-    <!-- Question chips -->
-    <div id="chipsWrap" class="flex flex-wrap gap-3 mt-6">
-      <button type="button" class="chip" onclick="setQ('What does Maharaj say about achieving peace of mind?')">Peace of mind</button>
-      <button type="button" class="chip" onclick="setQ('How to control anger according to Maharaj?')">Anger control</button>
-      <button type="button" class="chip" onclick="setQ('What is the importance of Ekadashi?')">Ekadashi mahatva</button>
-      <button type="button" class="chip" onclick="setQ('What is Maya according to Vachanamrut?')">What is Maya?</button>
-  </div>
+    <!-- Question chips (filled by setLang: 4 random from 12 per language) -->
+    <div id="chipsWrap" class="flex flex-wrap gap-3 mt-6"></div>
 
     <!-- Recent questions -->
     <div id="recentWrap" class="mt-6 pt-5" style="display:none;border-top:1px solid rgba(232,131,42,.12)">
@@ -539,16 +538,36 @@ qEl.addEventListener('input', function() {
 
 function setQ(t) { document.getElementById('q').value = t; }
 
+/** Shuffle copy of pool and return first `count` items (fresh random order on each call). */
+function pickRandomChips(pool, count) {
+  const copy = pool.map(c => ({ ...c }));
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = copy[i];
+    copy[i] = copy[j];
+    copy[j] = t;
+  }
+  return copy.slice(0, Math.min(count, copy.length));
+}
+
 /* ── Language toggle ── */
 const LANG_STRINGS = {
   en: {
     placeholder: 'Ask Maharaj anything... 🙏',
     btnText: '🙏 \u00a0Maharaj ne Pucho',
-    chips: [
-      { label: 'Anger control', q: 'How to control anger according to Maharaj?' },
-      { label: 'What is Maya?', q: 'What is Maya according to Vachanamrut?' },
-      { label: 'Peace of mind', q: 'How to find peace of mind according to Maharaj?' },
-      { label: 'Ekadashi', q: 'What is the importance of Ekadashi according to Maharaj?' },
+    chipPool: [
+      { label: 'How to control anger?', q: 'How to control anger?' },
+      { label: 'What is Maya?', q: 'What is Maya?' },
+      { label: 'How to find peace of mind?', q: 'How to find peace of mind?' },
+      { label: 'What is true Bhakti?', q: 'What is true Bhakti?' },
+      { label: 'How to overcome bad habits?', q: 'How to overcome bad habits?' },
+      { label: 'What is the nature of Akshar-Brahm?', q: 'What is the nature of Akshar-Brahm?' },
+      { label: 'How to strengthen faith in Maharaj?', q: 'How to strengthen faith in Maharaj?' },
+      { label: 'What did Maharaj say about the mind?', q: 'What did Maharaj say about the mind?' },
+      { label: 'How to do Ekadashi properly?', q: 'How to do Ekadashi properly?' },
+      { label: 'What is Vairagya?', q: 'What is Vairagya?' },
+      { label: 'How to avoid Kusang?', q: 'How to avoid Kusang?' },
+      { label: 'What is the importance of Satsang?', q: 'What is the importance of Satsang?' },
     ],
     limitMsg: `🙏 Daily limit of ${DAILY_QUESTION_LIMIT} questions reached. Come back tomorrow. Jai Swaminarayan 🙏`,
     langSuffix: 'IMPORTANT: You must answer in English only.',
@@ -556,11 +575,19 @@ const LANG_STRINGS = {
   gu: {
     placeholder: 'મહારાજને પ્રશ્ન પૂછો... 🙏',
     btnText: 'મહારાજને પૂછો 🙏',
-    chips: [
-      { label: 'ક્રોધ કાબૂ કરવો', q: 'ક્રોધ કેવી રીતે કાબૂ કરવો?' },
+    chipPool: [
+      { label: 'ક્રોધ કેવી રીતે કાબૂ કરવો?', q: 'ક્રોધ કેવી રીતે કાબૂ કરવો?' },
       { label: 'માયા શું છે?', q: 'માયા શું છે?' },
-      { label: 'મનની શાંતિ', q: 'મનની શાંતિ કેવી રીતે મેળવવી?' },
-      { label: 'એકાદશી', q: 'એકાદશી નું મહત્વ શું છે?' },
+      { label: 'મનની શાંતિ કેવી રીતે મળે?', q: 'મનની શાંતિ કેવી રીતે મળે?' },
+      { label: 'સાચી ભક્તિ શું છે?', q: 'સાચી ભક્તિ શું છે?' },
+      { label: 'ખરાબ આદતો કેવી રીતે છોડવી?', q: 'ખરાબ આદતો કેવી રીતે છોડવી?' },
+      { label: 'અક્ષર-બ્રહ્મનું સ્વરૂપ શું છે?', q: 'અક્ષર-બ્રહ્મનું સ્વરૂપ શું છે?' },
+      { label: 'મહારાજમાં શ્રદ્ધા કેવી રીતે વધારવી?', q: 'મહારાજમાં શ્રદ્ધા કેવી રીતે વધારવી?' },
+      { label: 'મન વિશે મહારાજે શું કહ્યું?', q: 'મન વિશે મહારાજે શું કહ્યું?' },
+      { label: 'એકાદશી કેવી રીતે કરવી?', q: 'એકાદશી કેવી રીતે કરવી?' },
+      { label: 'વૈરાગ્ય શું છે?', q: 'વૈરાગ્ય શું છે?' },
+      { label: 'કુસંગથી કેવી રીતે બચવું?', q: 'કુસંગથી કેવી રીતે બચવું?' },
+      { label: 'સત્સંગનું મહત્વ શું છે?', q: 'સત્સંગનું મહત્વ શું છે?' },
     ],
     limitMsg: `🙏 આજની ${DAILY_QUESTION_LIMIT} પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏`,
     langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
@@ -592,11 +619,13 @@ function setLang(lang) {
   const btn = document.getElementById('askBtn');
   if (!btn.disabled) btn.textContent = s.btnText;
 
-  document.getElementById('chipsWrap').innerHTML = s.chips
+  const chipsShown = pickRandomChips(s.chipPool, 4);
+  const chipClass = lang === 'gu' ? 'chip font-gujarati' : 'chip';
+  document.getElementById('chipsWrap').innerHTML = chipsShown
     .map(c => {
       const qAttr = String(c.q).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
       const labelHtml = String(c.label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-      return `<span class="chip" data-q="${qAttr}" role="button" tabindex="0" aria-label="Ask: ${labelHtml}">${labelHtml}</span>`;
+      return `<span class="${chipClass}" data-q="${qAttr}" role="button" tabindex="0" aria-label="Ask: ${labelHtml}">${labelHtml}</span>`;
     })
     .join('');
 
