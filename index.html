@@ -873,7 +873,8 @@ function mdToHtml(text) {
     // single line wraps from model output should flow as normal prose
     .replace(/\n/g, ' ')
     // keep list blocks compact; avoid big gaps around bullets/final paragraph
-    .replace(/<\/li><br>\s*<li/g, '</li><li')
+    .replace(/<\/li>(<br>\s*)+<li/g, '</li><li')
+    .replace(/<\/(ol|ul)>(<br>\s*){2,}/g, '</$1><br>')
     .replace(/<ul[^>]*><br>/g, m => m.replace('<br>', ''))
     .replace(/<br>\s*<\/ul>/g, '</ul>')
     .replace(/<ol[^>]*><br>/g, m => m.replace('<br>', ''))
