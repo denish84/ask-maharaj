@@ -39,6 +39,11 @@ export default async function handler(req, res) {
   const lastPeriod = content.lastIndexOf('.');
   if (lastPeriod > 100) content = content.slice(0, lastPeriod + 1);
 
+  // Strip leading discourse header (e.g. "GADHADĀ I - 181 - ") that PDF ingest left on the chunk
+  content = content
+    .replace(/^\s*[\p{L}\s]+\s*[IVXivx]*\s*[-–]\s*\d+\s*[-–]\s*/u, '')
+    .trim();
+
   return res.status(200).json({
     content,
     section: data.section,
