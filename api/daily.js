@@ -5,6 +5,31 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+/**
+ * PostgREST OR of ilike filters — teaching / direct-instruction cues (English + Gujarati).
+ * Avoids bare "explained"/"stated" (too much narrative).
+ */
+const TEACHING_CONTENT_OR = [
+  'content.ilike.%Maharaj said%',
+  'content.ilike.%one should%',
+  'content.ilike.%one must%',
+  'content.ilike.%ought to%',
+  'content.ilike.%a devotee%',
+  'content.ilike.%a devotee must%',
+  'content.ilike.%it is essential%',
+  'content.ilike.%Shriji Maharaj%',
+  'content.ilike.%Maharaj explained%',
+  'content.ilike.%Shriji Maharaj explained%',
+  'content.ilike.%Maharaj stated%',
+  'content.ilike.%Shriji Maharaj stated%',
+  'content.ilike.%મહારાજે કહ્યું%',
+  'content.ilike.%શ્રીજી મહારાજે%',
+  'content.ilike.%કહે છે કે%',
+  'content.ilike.%જોઈએ કે%',
+  'content.ilike.%અનિવાર્ય છે%',
+  'content.ilike.%ભક્તે જોઈએ%'
+].join(',');
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=3600');
@@ -15,17 +40,35 @@ export default async function handler(req, res) {
   const today = ist.toISOString().slice(0, 10);
   const seed = today.split('-').reduce((a, b) => a + parseInt(b, 10), 0);
 
-  const { count } = await supabase
+  let teachingOnly = true;
+  let { count } = await supabase
     .from('chunks')
     .select('*', { count: 'exact', head: true })
-    .not('vachanamrut_number', 'is', null);
+    .not('vachanamrut_number', 'is', null)
+    .or(TEACHING_CONTENT_OR);
 
-  const offset = seed % (count || 1);
+  let total = count ?? 0;
+  if (total === 0) {
+    teachingOnly = false;
+    const fallback = await supabase
+      .from('chunks')
+      .select('*', { count: 'exact', head: true })
+      .not('vachanamrut_number', 'is', null);
+    total = fallback.count ?? 0;
+  }
 
-  const { data, error } = await supabase
+  if (total === 0) {
+    return res.status(500).json({ error: 'Could not fetch daily teaching' });
+  }
+
+  const offset = seed % total;
+
+  let rowQuery = supabase
     .from('chunks')
     .select('content, section, vachanamrut_number, page_start')
-    .not('vachanamrut_number', 'is', null)
+    .not('vachanamrut_number', 'is', null);
+  if (teachingOnly) rowQuery = rowQuery.or(TEACHING_CONTENT_OR);
+  const { data, error } = await rowQuery
     .order('id', { ascending: true })
     .range(offset, offset)
     .single();
@@ -34,8 +77,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Could not fetch daily teaching' });
   }
 
-  // Trim content to first 300 chars at sentence boundary
-  let content = data.content.slice(0, 300);
+  // Trim content to first 400 chars at sentence boundary
+  let content = data.content.slice(0, 400);
   const lastPeriod = content.lastIndexOf('.');
   if (lastPeriod > 100) content = content.slice(0, lastPeriod + 1);
 
