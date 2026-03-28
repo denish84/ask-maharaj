@@ -249,7 +249,7 @@ export default async function handler(req, res) {
   content = stripThroughSamvatIntro(content);
   content = skipLongHistoryIntro(content);
 
-  const capped = content.slice(0, 400);
+  const capped = content.slice(0, 800);
   const lastPeriod = capped.lastIndexOf('.');
   let excerpt;
   if (lastPeriod > 100) {
