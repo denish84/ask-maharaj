@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import pdf from 'pdf-parse';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -11,16 +12,81 @@ const supabase = createClient(
 );
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const CHUNK_SIZE = 2000;
-const CHUNK_OVERLAP = 50;
 const BATCH_SIZE = 50;
 const DELAY_BETWEEN_BATCHES = 1000;
-const MAX_BATCHES = Infinity;
 const PDF_PATH = process.argv[2];
-const DOC_NAME = path.basename(PDF_PATH);
+
+// Recursive splitter — respects paragraph → line → word boundaries
+const splitter = new RecursiveCharacterTextSplitter({
+  chunkSize: 1200,
+  chunkOverlap: 200,
+  separators: ['\n\n', '\n', ' ', '']
+});
 
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
+}
+
+function detectSection(text) {
+  const match = text.match(
+    /(GADHADÃ?\s*I{1,3}|GADHADA\s*I{1,3}|SÃRANGPUR|SARANGPUR|KÃRIYÃNI|KARIYANI|LOYÃ|LOYA|PANCHÃLÃ|PANCHALA|VADTÃL|VADTAL|AMDÃVÃD|AHMEDABAD|JETALPUR)/i
+  );
+  return match ? normalizeSection(match[1].trim().toUpperCase()) : null;
+}
+
+function normalizeSection(section) {
+  if (!section) return null;
+  const map = {
+    'GADHADA I': 'GADHADA I',
+    'GADHADÃ I': 'GADHADA I',
+    'GADHADA II': 'GADHADA II',
+    'GADHADÃ II': 'GADHADA II',
+    'GADHADA III': 'GADHADA III',
+    'GADHADÃ III': 'GADHADA III',
+    SARANGPUR: 'SARANGPUR',
+    'SÃRANGPUR': 'SARANGPUR',
+    KARIYANI: 'KARIYANI',
+    'KÃRIYÃNI': 'KARIYANI',
+    LOYA: 'LOYA',
+    'LOYÃ': 'LOYA',
+    PANCHALA: 'PANCHALA',
+    'PANCHÃLÃ': 'PANCHALA',
+    VADTAL: 'VADTAL',
+    'VADTÃL': 'VADTAL',
+    AHMEDABAD: 'AMDAVAD',
+    'AMDÃVÃD': 'AMDAVAD',
+    JETALPUR: 'JETALPUR'
+  };
+  return map[section] || section;
+}
+
+// Carry section forward — once detected on a page it applies to all
+// subsequent pages until a new section header is found
+async function buildChunks(pages) {
+  const chunks = [];
+  let currentSection = 'Unknown';
+
+  for (const { text, pageNum } of pages) {
+    // Update section if this page has a header
+    const detected = detectSection(text);
+    if (detected) currentSection = detected;
+
+    // Split this page's text into recursive chunks
+    const docs = await splitter.createDocuments([text]);
+
+    for (const doc of docs) {
+      const content = doc.pageContent.trim();
+      if (content.length < 50) continue; // skip tiny fragments
+      chunks.push({
+        content,
+        page_start: pageNum,
+        page_end: pageNum,
+        section: currentSection
+      });
+    }
+  }
+
+  return chunks;
 }
 
 async function batchEmbed(chunks, retries = 6) {
@@ -42,20 +108,24 @@ async function batchEmbed(chunks, retries = 6) {
     );
 
     if (res.status === 429) {
-      const wait = Math.pow(2, attempt) * 5000; // 5s, 10s, 20s, 40s...
-      console.warn(`  [429] Rate limited. Waiting ${wait / 1000}s before retry ${attempt + 1}/${retries}...`);
+      const wait = Math.pow(2, attempt) * 5000;
+      console.warn(`  [429] Rate limited. Waiting ${wait / 1000}s (attempt ${attempt + 1}/${retries})...`);
       await sleep(wait);
       continue;
     }
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      console.error(`  [${res.status}] Gemini returned non-JSON response`);
+      if (attempt < retries - 1) { await sleep(5000); continue; }
+      return null;
+    }
 
-    if (!data.embeddings || !Array.isArray(data.embeddings)) {
-      console.error('  Gemini error response:', JSON.stringify(data));
-      if (attempt < retries - 1) {
-        await sleep(5000);
-        continue;
-      }
+    if (!res.ok || !data.embeddings || !Array.isArray(data.embeddings)) {
+      console.error(`  [${res.status}] Gemini error:`, JSON.stringify(data));
+      if (attempt < retries - 1) { await sleep(5000); continue; }
       return null;
     }
 
@@ -66,50 +136,17 @@ async function batchEmbed(chunks, retries = 6) {
   return null;
 }
 
-function chunkText(pages) {
-  const chunks = [];
-  for (const { text, pageNum } of pages) {
-    const firstLine = text.split(/\r?\n/)[0] || text;
-    const section = detectSection(firstLine);
-    let start = 0;
-    while (start < text.length) {
-      let end = start + CHUNK_SIZE;
-      if (end < text.length) {
-        let lastSpace = text.lastIndexOf(' ', end);
-        if (lastSpace > start + CHUNK_SIZE - 150) {
-          end = lastSpace;
-        }
-      }
-      chunks.push({
-        content: text.slice(start, end).trim(),
-        page_start: pageNum,
-        page_end: pageNum,
-        section: section || 'Unknown'
-      });
-      if (end >= text.length) break;
-      start = end - CHUNK_OVERLAP;
-      if (start > 0) {
-        let nextSpace = text.indexOf(' ', start);
-        if (nextSpace !== -1 && nextSpace < start + 100) {
-          start = nextSpace + 1;
-        }
-      }
-    }
-  }
-  return chunks;
-}
-
-function detectSection(text) {
-  const match = text.match(/^(GADHADÃ\s*[I]+|SÃRANGPUR|KÃRIYÃNI|LOYÃ|PANCHÃLÃ|VADTÃL|AMDÃVÃD|JETALPUR)/i);
-  return match ? match[1].trim() : null;
-}
-
 async function getOrCreateDocument(name) {
-  const { data: existing } = await supabase
+  const { data: existing, error: selectError } = await supabase
     .from('documents')
     .select('id')
     .eq('name', name)
     .maybeSingle();
+
+  if (selectError) {
+    console.error('Document lookup failed:', selectError.message);
+    throw selectError;
+  }
 
   if (existing) {
     console.log(`Document "${name}" already exists (id: ${existing.id}), reusing.`);
@@ -123,23 +160,81 @@ async function getOrCreateDocument(name) {
     .single();
 
   if (error) throw error;
-  console.log(`Created new document "${name}" (id: ${doc.id})`);
+  console.log(`Created document "${name}" (id: ${doc.id})`);
   return doc;
 }
 
+async function filterNewChunks(chunks, documentId) {
+  const DEDUPE_BATCH = 100;
+  const existingSet = new Set();
+
+  for (let i = 0; i < chunks.length; i += DEDUPE_BATCH) {
+    const batch = chunks.slice(i, i + DEDUPE_BATCH);
+    const contents = batch.map(c => c.content);
+    const { data: existing, error } = await supabase
+      .from('chunks')
+      .select('content, section')
+      .eq('document_id', documentId)
+      .in('content', contents);
+
+    if (error) {
+      console.error('Dedupe query failed:', error.message);
+      throw error;
+    }
+
+    (existing || []).forEach(r => existingSet.add(`${r.content}::${r.section}`));
+  }
+
+  const newChunks = chunks.filter(c => !existingSet.has(`${c.content}::${c.section}`));
+  if (chunks.length !== newChunks.length) {
+    console.log(`Skipping ${chunks.length - newChunks.length} already-ingested chunks.`);
+  }
+  return newChunks;
+}
+
 async function main() {
+  const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GEMINI_API_KEY'];
+  for (const key of required) {
+    if (!process.env[key]) {
+      console.error(`Missing required env variable: ${key}`);
+      process.exit(1);
+    }
+  }
+
   if (!PDF_PATH) {
     console.error('Usage: node scripts/ingest-pdf.js <path-to-pdf>');
     process.exit(1);
   }
 
+  const DOC_NAME = path.basename(PDF_PATH);
+
   console.log('Reading PDF...');
-  const buffer = fs.readFileSync(PDF_PATH);
-  const parsed = await pdf(buffer, {
-    pagerender: (pageData) => pageData.getTextContent().then(tc => {
-      return tc.items.map(i => i.str).join(' ') + '\n\f';
-    })
-  });
+  let buffer;
+  try {
+    buffer = fs.readFileSync(PDF_PATH);
+  } catch (err) {
+    console.error(`Could not read file: ${PDF_PATH}`);
+    console.error(err?.message || err);
+    process.exit(1);
+  }
+
+  let parsed;
+  try {
+    parsed = await pdf(buffer, {
+      pagerender: (pageData) => pageData.getTextContent().then(tc => {
+        let lastY = null;
+        return tc.items.map(item => {
+          const y = item.transform?.[5] ?? null;
+          const prefix = lastY !== null && y !== null && Math.abs(y - lastY) > 5 ? '\n' : ' ';
+          lastY = y;
+          return prefix + item.str;
+        }).join('').trim();
+      })
+    });
+  } catch (err) {
+    console.error('Failed to parse PDF:', err?.message || err);
+    process.exit(1);
+  }
 
   const pages = parsed.text
     .split('\f')
@@ -147,20 +242,32 @@ async function main() {
     .filter(p => p.text.length > 0);
 
   console.log(`Pages extracted: ${pages.length}`);
-  const allChunks = chunkText(pages);
-  console.log(`Chunks created: ${allChunks.length}`);
+  console.log('Building recursive chunks...');
+
+  const allChunks = await buildChunks(pages);
+  console.log(`Recursive chunks created: ${allChunks.length}`);
+
+  // Show section breakdown
+  const sectionCounts = {};
+  for (const c of allChunks) {
+    sectionCounts[c.section] = (sectionCounts[c.section] || 0) + 1;
+  }
+  console.log('Section breakdown:');
+  for (const [section, count] of Object.entries(sectionCounts)) {
+    console.log(`  ${section}: ${count} chunks`);
+  }
 
   const doc = await getOrCreateDocument(DOC_NAME);
-  const chunks = allChunks;
-  console.log(`Total chunks to process: ${chunks.length}`);
+  const chunks = await filterNewChunks(allChunks, doc.id);
 
   if (chunks.length === 0) {
     console.log('All chunks already ingested. Nothing to do.');
     return;
   }
 
-  console.log(`Embedding ${chunks.length} new chunks in batches of ${BATCH_SIZE} (max ${MAX_BATCHES} batches)...`);
-  const totalBatches = Math.min(Math.ceil(chunks.length / BATCH_SIZE), MAX_BATCHES);
+  const totalBatches = Math.ceil(chunks.length / BATCH_SIZE);
+  console.log(`\nEmbedding ${chunks.length} chunks in ${totalBatches} batches of ${BATCH_SIZE}...`);
+
   let totalInserted = 0;
   let totalSkipped = 0;
   let totalFailed = 0;
@@ -208,7 +315,6 @@ async function main() {
       }
     }
 
-    // Steady throttle between batches to stay under rate limit
     if (batchIdx < totalBatches - 1) {
       await sleep(DELAY_BETWEEN_BATCHES);
     }
@@ -221,7 +327,7 @@ async function main() {
   Inserted        : ${totalInserted}
   Skipped         : ${totalSkipped}
   Failed          : ${totalFailed}
-  Batches run     : ${totalBatches} / ${Math.ceil(chunks.length / BATCH_SIZE)} total
+  Batches run     : ${totalBatches}
 ─────────────────────────────`);
 }
 
