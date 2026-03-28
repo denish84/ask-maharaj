@@ -568,7 +568,7 @@ tailwind.config = {
   <div id="dailyBanner" class="daily-lang-en" style="display:none">
     <div class="daily-inner">
       <div class="daily-card-flourish" aria-hidden="true">✦</div>
-      <div class="daily-eyebrow" id="dailyWisdomTitle">✦ Aaj nu Vachanamrut · આજનું વચનામૃત ✦</div>
+      <div class="daily-eyebrow" id="dailyTitle">Aaj nu Vachanamrut · આજનું વચનામૃત</div>
       <blockquote class="daily-text daily-text--scripture" id="dailyText"></blockquote>
       <div class="daily-pills-row" id="dailyPills" aria-label="Source"></div>
       <button type="button" class="wa-share-btn daily-share-btn" id="dailyShareBtn" onclick="shareDailyWisdom()">
@@ -800,7 +800,6 @@ const LANG_STRINGS = {
     limitMsg: `🙏 Daily limit of ${DAILY_QUESTION_LIMIT} questions reached. Come back tomorrow. Jai Swaminarayan 🙏`,
     langSuffix: 'IMPORTANT: You must answer in English only.',
     exploreDeeperTitle: 'Explore Deeper',
-    dailyWisdomTitle: '✦ Aaj nu Vachanamrut · આજનું વચનામૃત ✦',
     dailyShareWhatsApp: 'Share on WhatsApp',
     dailyShareHead: '*Daily Wisdom from Ask Maharaj*',
     dailyShareReadMore: '✨ Read more:',
@@ -833,7 +832,6 @@ const LANG_STRINGS = {
     limitMsg: `🙏 આજની ${DAILY_QUESTION_LIMIT} પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏`,
     langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
     exploreDeeperTitle: 'ઊંડાણથી જાણો',
-    dailyWisdomTitle: '✦ Aaj nu Vachanamrut · આજનું વચનામૃત ✦',
     dailyShareWhatsApp: 'વોટ્સએપ પર શેર કરો',
     dailyShareHead: '*Ask Maharaj માંથી આજનો વિચાર*',
     dailyShareReadMore: '✨ વધુ વાંચો:',
@@ -917,6 +915,12 @@ function setLang(lang) {
 
   document.getElementById('langEn').classList.toggle('lang-active', lang === 'en');
   document.getElementById('langGu').classList.toggle('lang-active', lang === 'gu');
+
+  const dailyTitle = document.getElementById('dailyTitle');
+  if (dailyTitle) {
+    dailyTitle.textContent =
+      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut · આજનું વચનામૃત';
+  }
 
   syncDailyBannerChrome(lang);
 }
@@ -1419,10 +1423,13 @@ function renderDailyPills(d) {
 
 function syncDailyBannerChrome(lang) {
   const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
-  const title = document.getElementById('dailyWisdomTitle');
+  const dailyTitle = document.getElementById('dailyTitle');
+  if (dailyTitle) {
+    dailyTitle.textContent =
+      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut · આજનું વચનામૃત';
+  }
   const btn = document.getElementById('dailyShareBtn');
   const banner = document.getElementById('dailyBanner');
-  if (title) title.textContent = s.dailyWisdomTitle;
   if (btn) {
     const label = document.getElementById('dailyShareBtnLabel');
     if (label) label.textContent = s.dailyShareWhatsApp;
