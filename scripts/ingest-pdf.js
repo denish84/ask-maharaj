@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import pdf from 'pdf-parse';
+import { createHash } from 'crypto';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
@@ -15,6 +16,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const BATCH_SIZE = 50;
 const DELAY_BETWEEN_BATCHES = 1000;
 const PDF_PATH = process.argv[2];
+const DRY_RUN = process.argv.includes('--dry-run');
 
 // Recursive splitter — respects paragraph → line → word boundaries
 const splitter = new RecursiveCharacterTextSplitter({
@@ -23,8 +25,16 @@ const splitter = new RecursiveCharacterTextSplitter({
   separators: ['\n\n', '\n', ' ', '']
 });
 
+// Page marker injected between pages so we can recover page numbers after splitting
+const PAGE_MARKER = (n) => `\n\n<<<PAGE:${n}>>>\n\n`;
+const PAGE_MARKER_RE = /<<<PAGE:(\d+)>>>/g;
+
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
+}
+
+function hashContent(text) {
+  return createHash('sha256').update(text).digest('hex').slice(0, 16);
 }
 
 function detectSection(text) {
@@ -37,51 +47,132 @@ function detectSection(text) {
 function normalizeSection(section) {
   if (!section) return null;
   const map = {
-    'GADHADA I': 'GADHADA I',
-    'GADHADÃ I': 'GADHADA I',
-    'GADHADA II': 'GADHADA II',
-    'GADHADÃ II': 'GADHADA II',
+    'GADHADA I':   'GADHADA I',
+    'GADHADÃ I':   'GADHADA I',
+    'GADHADA II':  'GADHADA II',
+    'GADHADÃ II':  'GADHADA II',
     'GADHADA III': 'GADHADA III',
     'GADHADÃ III': 'GADHADA III',
-    SARANGPUR: 'SARANGPUR',
-    'SÃRANGPUR': 'SARANGPUR',
-    KARIYANI: 'KARIYANI',
-    'KÃRIYÃNI': 'KARIYANI',
-    LOYA: 'LOYA',
-    'LOYÃ': 'LOYA',
-    PANCHALA: 'PANCHALA',
-    'PANCHÃLÃ': 'PANCHALA',
-    VADTAL: 'VADTAL',
-    'VADTÃL': 'VADTAL',
-    AHMEDABAD: 'AMDAVAD',
-    'AMDÃVÃD': 'AMDAVAD',
-    JETALPUR: 'JETALPUR'
+    'SARANGPUR':   'SARANGPUR',
+    'SÃRANGPUR':   'SARANGPUR',
+    'KARIYANI':    'KARIYANI',
+    'KÃRIYÃNI':    'KARIYANI',
+    'LOYA':        'LOYA',
+    'LOYÃ':        'LOYA',
+    'PANCHALA':    'PANCHALA',
+    'PANCHÃLÃ':    'PANCHALA',
+    'VADTAL':      'VADTAL',
+    'VADTÃL':      'VADTAL',
+    'AHMEDABAD':   'AMDAVAD',
+    'AMDÃVÃD':     'AMDAVAD',
+    'JETALPUR':    'JETALPUR'
   };
   return map[section] || section;
 }
 
-// Carry section forward — once detected on a page it applies to all
-// subsequent pages until a new section header is found
+// Build a page-number lookup table from a text block containing PAGE_MARKERs.
+// Returns [{offset, pageNum}] sorted by offset.
+function buildPageIndex(text) {
+  const index = [{ offset: 0, pageNum: 1 }];
+  PAGE_MARKER_RE.lastIndex = 0;
+  let match;
+  while ((match = PAGE_MARKER_RE.exec(text)) !== null) {
+    index.push({ offset: match.index, pageNum: Number(match[1]) });
+  }
+  return index;
+}
+
+// Return the page number that applies at a given character offset.
+function pageAtOffset(index, offset) {
+  let pageNum = index[0].pageNum;
+  for (const entry of index) {
+    if (entry.offset > offset) break;
+    pageNum = entry.pageNum;
+  }
+  return pageNum;
+}
+
+// Build a discourse-number lookup from text.
+// Returns [{index, label}] in document order.
+function buildDiscourseIndex(text) {
+  const re = /\b(GADHAD[AÃ]\s*I{1,3}|S[AÃ]RANGPUR|K[AÃ]RIY[AÃ]NI|LOY[AÃ]|PANCH[AÃ]L[AÃ]|VADT[AÃ]L|AMD[AÃ]V[AÃ]D|JETALPUR)\s*[-–]?\s*(\d+)/gi;
+  const entries = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    entries.push({ index: m.index, label: `${m[1].trim()} ${m[2]}` });
+  }
+  return entries;
+}
+
+// Return the last discourse label whose position is <= offset.
+function discourseAtOffset(discourseIndex, offset) {
+  let label = null;
+  for (const entry of discourseIndex) {
+    if (entry.index > offset) break;
+    label = entry.label;
+  }
+  return label;
+}
+
 async function buildChunks(pages) {
   const chunks = [];
+
+  // ── Group consecutive pages by section ──────────────────────────────────────
+  const groups = [];
   let currentSection = 'Unknown';
+  let currentGroup = { section: 'Unknown', pages: [] };
 
-  for (const { text, pageNum } of pages) {
-    // Update section if this page has a header
-    const detected = detectSection(text);
-    if (detected) currentSection = detected;
+  for (const page of pages) {
+    const detected = detectSection(page.text);
+    if (detected && detected !== currentSection) {
+      if (currentGroup.pages.length > 0) groups.push(currentGroup);
+      currentSection = detected;
+      currentGroup = { section: detected, pages: [] };
+    }
+    currentGroup.pages.push(page);
+  }
+  if (currentGroup.pages.length > 0) groups.push(currentGroup);
 
-    // Split this page's text into recursive chunks
-    const docs = await splitter.createDocuments([text]);
+  // ── Process each section as one concatenated block ───────────────────────────
+  for (const group of groups) {
+    // Join pages with markers — markers let us recover page numbers after splitting
+    const fullText = group.pages
+      .map(p => PAGE_MARKER(p.pageNum) + p.text)
+      .join('\n\n');
+
+    const pageIndex      = buildPageIndex(fullText);
+    const discourseIndex = buildDiscourseIndex(fullText);
+
+    const docs = await splitter.createDocuments([fullText]);
+
+    let searchFrom = 0;
 
     for (const doc of docs) {
-      const content = doc.pageContent.trim();
-      if (content.length < 50) continue; // skip tiny fragments
+      const rawContent = doc.pageContent.trim();
+
+      // Strip any PAGE_MARKERs that landed inside a chunk due to overlap
+      const cleanContent = rawContent.replace(/<<<PAGE:\d+>>>/g, '').trim();
+      if (cleanContent.length < 50) continue;
+
+      // Try progressively shorter anchors if the first attempt fails
+      let chunkOffset = -1;
+      for (const anchorLen of [120, 80, 50]) {
+        const anchor = rawContent.slice(0, anchorLen);
+        chunkOffset = fullText.indexOf(anchor, searchFrom);
+        if (chunkOffset === -1) chunkOffset = fullText.indexOf(anchor); // overlap fallback
+        if (chunkOffset !== -1) break;
+      }
+      if (chunkOffset !== -1) searchFrom = chunkOffset + 1;
+
+      const effectiveOffset = chunkOffset === -1 ? 0 : chunkOffset;
+
       chunks.push({
-        content,
-        page_start: pageNum,
-        page_end: pageNum,
-        section: currentSection
+        content:            cleanContent,
+        content_hash:       hashContent(cleanContent),
+        page_start:         pageAtOffset(pageIndex, effectiveOffset),
+        page_end:           pageAtOffset(pageIndex, effectiveOffset),
+        section:            group.section,
+        vachanamrut_number: discourseAtOffset(discourseIndex, effectiveOffset)
       });
     }
   }
@@ -167,25 +258,30 @@ async function getOrCreateDocument(name) {
 async function filterNewChunks(chunks, documentId) {
   const DEDUPE_BATCH = 100;
   const existingSet = new Set();
+  let dedupeSkipLogged = false;
 
   for (let i = 0; i < chunks.length; i += DEDUPE_BATCH) {
     const batch = chunks.slice(i, i + DEDUPE_BATCH);
-    const contents = batch.map(c => c.content);
+    const hashes = batch.map(c => c.content_hash);
+
     const { data: existing, error } = await supabase
       .from('chunks')
-      .select('content, section')
+      .select('content_hash')
       .eq('document_id', documentId)
-      .in('content', contents);
+      .in('content_hash', hashes);
 
     if (error) {
-      console.error('Dedupe query failed:', error.message);
-      throw error;
+      if (!dedupeSkipLogged) {
+        console.log('No existing chunks found, skipping dedupe.');
+        dedupeSkipLogged = true;
+      }
+      continue;
     }
 
-    (existing || []).forEach(r => existingSet.add(`${r.content}::${r.section}`));
+    (existing || []).forEach(r => existingSet.add(r.content_hash));
   }
 
-  const newChunks = chunks.filter(c => !existingSet.has(`${c.content}::${c.section}`));
+  const newChunks = chunks.filter(c => !existingSet.has(c.content_hash));
   if (chunks.length !== newChunks.length) {
     console.log(`Skipping ${chunks.length - newChunks.length} already-ingested chunks.`);
   }
@@ -218,28 +314,25 @@ async function main() {
     process.exit(1);
   }
 
-  let parsed;
+  let pages = [];
   try {
-    parsed = await pdf(buffer, {
-      pagerender: (pageData) => pageData.getTextContent().then(tc => {
-        let lastY = null;
-        return tc.items.map(item => {
-          const y = item.transform?.[5] ?? null;
-          const prefix = lastY !== null && y !== null && Math.abs(y - lastY) > 5 ? '\n' : ' ';
-          lastY = y;
-          return prefix + item.str;
-        }).join('').trim();
-      })
-    });
+    const uint8Array = new Uint8Array(buffer);
+    const pdfDoc = await getDocument({ data: uint8Array }).promise;
+    const numPages = pdfDoc.numPages;
+    console.log(`PDF loaded: ${numPages} pages`);
+
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdfDoc.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const text = textContent.items.map(item => item.str).join(' ').trim();
+      if (text.length > 0) {
+        pages.push({ text, pageNum });
+      }
+    }
   } catch (err) {
     console.error('Failed to parse PDF:', err?.message || err);
     process.exit(1);
   }
-
-  const pages = parsed.text
-    .split('\f')
-    .map((text, i) => ({ text: text.trim(), pageNum: i + 1 }))
-    .filter(p => p.text.length > 0);
 
   console.log(`Pages extracted: ${pages.length}`);
   console.log('Building recursive chunks...');
@@ -247,7 +340,7 @@ async function main() {
   const allChunks = await buildChunks(pages);
   console.log(`Recursive chunks created: ${allChunks.length}`);
 
-  // Show section breakdown
+  // Section breakdown
   const sectionCounts = {};
   for (const c of allChunks) {
     sectionCounts[c.section] = (sectionCounts[c.section] || 0) + 1;
@@ -255,6 +348,38 @@ async function main() {
   console.log('Section breakdown:');
   for (const [section, count] of Object.entries(sectionCounts)) {
     console.log(`  ${section}: ${count} chunks`);
+  }
+
+  if (DRY_RUN) {
+    console.log('\n[DRY RUN] Stopping before embed/insert. Check section breakdown above.');
+    console.log(`Chunks with discourse number: ${allChunks.filter(c => c.vachanamrut_number).length}`);
+
+    const withDisc = allChunks.filter(c => c.vachanamrut_number).slice(0, 3);
+    const withoutDisc = allChunks.filter(c => !c.vachanamrut_number).slice(0, 2);
+
+    console.log('\nSample chunks WITH discourse number:');
+    withDisc.forEach((c, i) => {
+      console.log(`\n--- ${i + 1} ---`);
+      console.log(`Section: ${c.section} | Page: ${c.page_start} | Discourse: ${c.vachanamrut_number}`);
+      console.log(`Content: ${c.content.slice(0, 150)}...`);
+    });
+
+    console.log('\nSample chunks WITHOUT discourse number:');
+    withoutDisc.forEach((c, i) => {
+      console.log(`\n--- ${i + 1} ---`);
+      console.log(`Section: ${c.section} | Page: ${c.page_start}`);
+      console.log(`Content: ${c.content.slice(0, 150)}...`);
+    });
+
+    process.exit(0);
+  }
+
+  // Discourse number sample
+  const withDiscount = allChunks.filter(c => c.vachanamrut_number);
+  console.log(`Chunks with discourse number: ${withDiscount.length}`);
+  if (withDiscount.length > 0) {
+    const sample = [...new Set(withDiscount.slice(0, 5).map(c => c.vachanamrut_number))];
+    console.log('Sample discourse numbers:', sample);
   }
 
   const doc = await getOrCreateDocument(DOC_NAME);
@@ -292,11 +417,13 @@ async function main() {
         const embedding = embeddings[idx]?.values;
         if (!embedding) return null;
         return {
-          document_id: doc.id,
-          content: chunk.content,
-          page_start: chunk.page_start,
-          page_end: chunk.page_end,
-          section: chunk.section,
+          document_id:        doc.id,
+          content:            chunk.content,
+          content_hash:       chunk.content_hash,
+          page_start:         chunk.page_start,
+          page_end:           chunk.page_end,
+          section:            chunk.section,
+          vachanamrut_number: chunk.vachanamrut_number || null,
           embedding
         };
       })
