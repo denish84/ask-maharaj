@@ -87,6 +87,11 @@ export default async function handler(req, res) {
     .replace(/^\s*[\p{L}\s]+\s*[IVXivx]*\s*[-–]\s*\d+\s*[-–]\s*/u, '')
     .trim();
 
+  content = content
+    .replace(/\d+\.\d+\s*/g, '') // footnote-style refs (e.g. 35.7); removes all such tokens in the snippet
+    .replace(/^\s*(Then|Also|However|But|And|So)\b,?\s*/i, '')
+    .trim();
+
   return res.status(200).json({
     content,
     section: data.section,
