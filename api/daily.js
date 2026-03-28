@@ -79,16 +79,16 @@ function nextSentenceStart(t, from) {
 }
 
 /**
- * If narrative intro is long (>200 chars before first cue), start near teaching.
+ * Start near teaching: first teaching phrase or opening quote from the start of the text.
  * Mid-context phrases (for example, …) only advance the search past their sentence;
  * the slice uses the first non-mid cue (teaching phrase or opening quote).
  */
 function skipLongHistoryIntro(s) {
   const t = s.trim();
-  if (t.length <= 200) return t;
+  if (!t.length) return t;
 
   const lower = t.toLowerCase();
-  let minFrom = 200;
+  let minFrom = 0;
 
   for (;;) {
     let anchor = -1;
@@ -99,7 +99,7 @@ function skipLongHistoryIntro(s) {
       let from = 0;
       let idx;
       while ((idx = lower.indexOf(p, from)) !== -1) {
-        if (idx >= minFrom && idx > 200 && (anchor === -1 || idx < anchor)) {
+        if (idx >= minFrom && (anchor === -1 || idx < anchor)) {
           anchor = idx;
           anchorIsMidContext = MID_CONTEXT_SKIP_LOWER.has(p);
         }
@@ -110,11 +110,7 @@ function skipLongHistoryIntro(s) {
     const quoteRe = /[""«]/g;
     let qm;
     while ((qm = quoteRe.exec(t)) !== null) {
-      if (
-        qm.index >= minFrom &&
-        qm.index > 200 &&
-        (anchor === -1 || qm.index < anchor)
-      ) {
+      if (qm.index >= minFrom && (anchor === -1 || qm.index < anchor)) {
         anchor = qm.index;
         anchorIsMidContext = false;
       }
