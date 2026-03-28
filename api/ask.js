@@ -56,8 +56,7 @@ Formatting Rules:
 
 const LANG_SUFFIXES = {
     en: 'IMPORTANT: You must answer in English only.',
-    gu:
-      'IMPORTANT: You must answer in Gujarati script only. Every single character in your response must be Gujarati Unicode (U+0A80–U+0AFF) or standard punctuation. Do not use any Latin, Devanagari, Cyrillic, or any other script characters anywhere in your response, including inside headings and bullet points.'
+    gu: 'IMPORTANT: You must answer in Gujarati script only. Every single character in your response must be Gujarati Unicode (U+0A80–U+0AFF) or standard punctuation. Do not use any Latin, Devanagari, Arabic, Urdu, Cyrillic, or any other script characters anywhere in your response, including inside headings and bullet points. For verbs meaning "said" or "explained", always use કહ્યું છે or વર્ણન કર્યું છે — never Urdu-origin words like farmaya or فرمایا.'
 };
 
 // Bika.ai (temporary inline defaults; move to .env later)
