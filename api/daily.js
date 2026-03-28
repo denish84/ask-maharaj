@@ -30,6 +30,16 @@ const TEACHING_CONTENT_OR = [
   'content.ilike.%ભક્તે જોઈએ%'
 ].join(',');
 
+/** Drop long printed headings before standard English Vachanamrut date intro (e.g. "Gadhadã I – 74 … In the Samvat year"). */
+function stripThroughSamvatIntro(s) {
+  const t = s.trim();
+  const re = /\bIn the Samvat year\b/i;
+  const m = re.exec(t);
+  if (!m || m.index <= 0) return t;
+  if (m.index > 900) return t;
+  return t.slice(m.index).trim();
+}
+
 /** If excerpt starts mid-sentence (lowercase), skip to after the first full stop + capital opener. */
 function trimMidSentenceStart(s) {
   const t = s.trim();
@@ -96,15 +106,20 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Could not fetch daily teaching' });
   }
 
-  // Trim content to first 400 chars at sentence boundary
-  let content = data.content.slice(0, 400);
-  const lastPeriod = content.lastIndexOf('.');
-  if (lastPeriod > 100) content = content.slice(0, lastPeriod + 1);
+  // Clean full chunk first so we don't slice away anchors like "In the Samvat year"
+  let content = String(data.content || '');
 
   // Strip leading discourse header (e.g. "GADHADĀ I - 181 - ") that PDF ingest left on the chunk
   content = content
     .replace(/^\s*[\p{L}\s]+\s*[IVXivx]*\s*[-–]\s*\d+\s*[-–]\s*/u, '')
     .trim();
+
+  content = stripThroughSamvatIntro(content);
+
+  // Trim to first 400 chars at sentence boundary (after structural strips)
+  content = content.slice(0, 400);
+  const lastPeriod = content.lastIndexOf('.');
+  if (lastPeriod > 100) content = content.slice(0, lastPeriod + 1);
 
   content = content
     .replace(/\b\d+\.\d+\s*/g, '') // footnote-style refs (e.g. 35.7); word-boundary avoids glued digits
