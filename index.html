@@ -410,6 +410,20 @@ tailwind.config = {
   #dailyBanner.daily-lang-gu .daily-text.daily-text--scripture {
     font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
   }
+  .daily-lang-note {
+    display: none;
+    font-family: 'Noto Serif Gujarati', Georgia, serif;
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: center;
+    color: rgba(232, 220, 200, 0.52);
+    margin: 8px 0 12px;
+    padding: 0 10px;
+    font-style: italic;
+  }
+  .daily-lang-note.daily-lang-note--visible {
+    display: block;
+  }
   .daily-pills-row {
     display: flex;
     flex-wrap: wrap;
@@ -570,6 +584,7 @@ tailwind.config = {
       <div class="daily-card-flourish" aria-hidden="true">✦</div>
       <div class="daily-eyebrow" id="dailyTitle">Aaj nu Vachanamrut · આજનું વચનામૃત</div>
       <blockquote class="daily-text daily-text--scripture" id="dailyText"></blockquote>
+      <p class="daily-lang-note" id="dailyLangNote" aria-hidden="true">(મૂળ અંગ્રેજી અનુવાદ)</p>
       <div class="daily-pills-row" id="dailyPills" aria-label="Source"></div>
       <button type="button" class="wa-share-btn daily-share-btn" id="dailyShareBtn" onclick="shareDailyWisdom()">
         <svg class="wa-share-wa-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -851,6 +866,18 @@ function updateDailyTitle(lang) {
   if (dailyTitle) {
     dailyTitle.textContent =
       lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut · આજનું વચનામૃત';
+  }
+}
+
+function updateDailyLangNote(lang) {
+  const note = document.getElementById('dailyLangNote');
+  if (!note) return;
+  if (lang === 'gu') {
+    note.classList.add('daily-lang-note--visible');
+    note.removeAttribute('aria-hidden');
+  } else {
+    note.classList.remove('daily-lang-note--visible');
+    note.setAttribute('aria-hidden', 'true');
   }
 }
 
@@ -1426,6 +1453,7 @@ function renderDailyPills(d) {
 function syncDailyBannerChrome(lang) {
   const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
   updateDailyTitle(lang);
+  updateDailyLangNote(lang);
   const btn = document.getElementById('dailyShareBtn');
   const banner = document.getElementById('dailyBanner');
   if (btn) {
