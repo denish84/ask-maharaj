@@ -863,7 +863,7 @@ function mdToHtml(text) {
       '<ul style="margin:6px 0;padding-left:18px;list-style:disc">$&</ul>'
     )
     .replace(
-      /(<li class="num-item"[^>]*>[\s\S]*?<\/li>\n?)+/g,
+      /(<li class="num-item"[^>]*>[\s\S]*?<\/li>)(\s*<li class="num-item"[^>]*>[\s\S]*?<\/li>)*/g,
       '<ol style="margin:8px 0;padding-left:20px;list-style:decimal">$&</ol>'
     )
     // horizontal rules
