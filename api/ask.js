@@ -261,17 +261,24 @@ async function retrieveContext(question) {
     match_count: RETRIEVAL_MATCH_COUNT
   });
 
-  if (error || !chunks?.length) return { context: '', citations: [] };
+  if (error) {
+    console.error('match_chunks error:', JSON.stringify(error));
+    return { context: '', citations: [] };
+  }
+  if (!chunks?.length) return { context: '', citations: [] };
 
   const citations = chunks.map(c => ({
     section: c.section,
+    vachanamrut_number: c.vachanamrut_number || null,
     page_start: c.page_start,
-    page_end: c.page_end,
     similarity: Math.round(c.similarity * 100)
   }));
 
   const context = chunks
-    .map((c, i) => `[${i + 1}] (${c.section}, p.${c.page_start})\n${c.content}`)
+    .map((c, i) => {
+      const ref = c.vachanamrut_number || `${c.section}, p.${c.page_start}`;
+      return `[${i + 1}] (${ref})\n${c.content}`;
+    })
     .join('\n\n');
 
   return { context, citations };
