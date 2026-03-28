@@ -413,7 +413,7 @@ export default async function handler(req, res) {
         'Authorization': 'Bearer ' + process.env.STRAICO_KEY
       },
       body: JSON.stringify({
-        models: ['openai/gpt-4.1'],
+        models: ['openai/gpt-4o'],
         message: safeMessage,
         // Keep responses consistent for spiritual guidance while allowing enough depth.
         temperature: 0.3,
