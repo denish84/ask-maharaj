@@ -1,1 +1,0 @@
-{"sessionId":"cf6223","location":"probe:bika-post","message":"direct bika probe","data":{"httpStatus":500,"ok":false,"bodyPreview":"{\"success\":false,\"code\":500,\"message\":\"Request failed with status code 500\",\"data\":{}}","id":null,"keys":["success","code","message","data"]},"hypothesisId":"B","timestamp":1774705125283,"runId":"probe"}
