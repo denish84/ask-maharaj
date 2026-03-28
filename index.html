@@ -274,6 +274,8 @@ tailwind.config = {
   /* ── Reduced motion ── */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
+    /* #dailyBanner starts opacity:0 and only fades in via animation — without this it stays invisible */
+    #dailyBanner { opacity: 1 !important; transform: none !important; }
   }
 
   /* ── Scrollbar ── */
@@ -1354,6 +1356,9 @@ async function loadDailyTeaching() {
 
     const banner = document.getElementById('dailyBanner');
     banner.style.display = 'block';
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      banner.style.opacity = '1';
+    }
   } catch (e) {
     // Fail silently — banner is non-critical
   }
