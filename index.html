@@ -1039,17 +1039,23 @@ function typeAnswer(text) {
     if (i >= words.length) {
       clearInterval(window._typeAnswerInterval);
       window._typeAnswerInterval = null;
+      el.innerHTML = mdToHtml(text);
       const cit = document.getElementById('citationsBlock');
       if (cit) cit.style.visibility = 'visible';
-      if (rw) rw.style.visibility = 'visible';
+      if (rw) {
+        rw.style.visibility = 'visible';
+        rw.style.display = '';
+      }
       showReactions();
       return;
     }
-    const chunk = words.slice(0, i + 1).join('');
-    el.innerHTML = mdToHtml(chunk);
+    if (i % 3 === 0 || i === words.length - 1) {
+      const chunk = words.slice(0, i + 1).join('');
+      el.innerHTML = mdToHtml(chunk);
+      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
     i++;
-    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, 30);
+  }, 20);
 }
 
 function showAns(text, cached, coins) {
