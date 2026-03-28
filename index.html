@@ -1016,21 +1016,57 @@ function mdToHtml(text) {
     .replace(/[ \t]{2,}/g, ' ');
 }
 
+/** Typewriter effect; grows plain text by word then mdToHtml so tags are never split mid-token. */
+function typeAnswer(text) {
+  const el = document.getElementById('ansText');
+  el.innerHTML = '';
+  const words = String(text).split(/(\s+)/);
+  let i = 0;
+
+  if (window._typeAnswerInterval) clearInterval(window._typeAnswerInterval);
+  if (reactionTimer) clearTimeout(reactionTimer);
+  reactionTimer = null;
+
+  const citStart = document.getElementById('citationsBlock');
+  if (citStart) citStart.style.visibility = 'hidden';
+  const rw = document.getElementById('reactionWrap');
+  if (rw) {
+    rw.style.visibility = 'hidden';
+    rw.style.display = 'none';
+  }
+
+  window._typeAnswerInterval = setInterval(() => {
+    if (i >= words.length) {
+      clearInterval(window._typeAnswerInterval);
+      window._typeAnswerInterval = null;
+      const cit = document.getElementById('citationsBlock');
+      if (cit) cit.style.visibility = 'visible';
+      if (rw) rw.style.visibility = 'visible';
+      showReactions();
+      return;
+    }
+    const chunk = words.slice(0, i + 1).join('');
+    el.innerHTML = mdToHtml(chunk);
+    i++;
+    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, 30);
+}
+
 function showAns(text, cached, coins) {
   const question = document.getElementById('q').value.trim();
   const qEcho = document.getElementById('qEcho');
   if (qEcho) qEcho.textContent = question;
   if (question && !cached) saveRecentQuestion(question, text);
-  document.getElementById('ansText').innerHTML = mdToHtml(text);
   // Remove old citations if any
   const oldCitations = document.getElementById('citationsBlock');
   if (oldCitations) oldCitations.remove();
 
-  // Render citations if present
+  // Render citations if present (hidden until typeAnswer finishes)
   if (window._lastCitations && window._lastCitations.length > 0) {
     const citBlock = document.createElement('div');
     citBlock.id = 'citationsBlock';
-    citBlock.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid rgba(232,131,42,.18)';
+    citBlock.style.cssText =
+      'margin-top:16px;padding-top:12px;border-top:1px solid rgba(232,131,42,.18);visibility:hidden';
     citBlock.innerHTML = `
     <p style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:rgba(232,131,42,.65);margin-bottom:8px;font-family:\'Crimson Pro\',serif">📜 Sources from Vachanamrut</p>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -1045,13 +1081,22 @@ function showAns(text, cached, coins) {
   `;
     document.getElementById('answerScroll').appendChild(citBlock);
   }
+
+  typeAnswer(text);
+
   document.getElementById('cTag').style.display = 'inline-block';
   const c = document.getElementById('ansCard');
   c.classList.add('show');
   setTimeout(() => c.scrollIntoView({ behavior: 'smooth', block: 'start' }), 680);
 }
 
-function hideAns() { document.getElementById('ansCard').classList.remove('show'); }
+function hideAns() {
+  if (window._typeAnswerInterval) {
+    clearInterval(window._typeAnswerInterval);
+    window._typeAnswerInterval = null;
+  }
+  document.getElementById('ansCard').classList.remove('show');
+}
 function showErr(m) { const e=document.getElementById('errBox'); e.textContent=m; e.classList.add('show'); }
 function hideErr() { document.getElementById('errBox').classList.remove('show'); }
 
@@ -1227,11 +1272,10 @@ function hideReactions() {
   if (wrap) wrap.style.display = 'none';
 }
 
-// Hook into showAns and hideAns
+// Hook into showAns and hideAns (reactions run after typeAnswer completes inside showAns)
 const _origShowAns = showAns;
 showAns = function(text, cached, coins) {
   _origShowAns.call(this, text, cached, coins);
-  showReactions();
 };
 
 const _origHideAns = hideAns;
