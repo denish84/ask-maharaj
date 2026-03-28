@@ -5,9 +5,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Slightly more recall: 0.5 often drops correct chunks; 12 gives the model room to pick the right one.
-const RETRIEVAL_MATCH_COUNT = 12;
-const RETRIEVAL_THRESHOLD = 0.38;
+const RETRIEVAL_MATCH_COUNT = 8;
+const RETRIEVAL_THRESHOLD = 0.5;
 
 // Keep this outside the handler so it persists while the server is "warm"
 const rateLimitMap = new Map();
