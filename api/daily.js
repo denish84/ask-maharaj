@@ -189,6 +189,9 @@ export default async function handler(req, res) {
     '$1-$2'
   );
 
+  // Trailing discourse/page-style number (e.g. " 199.") leaked into chunk text
+  content = content.replace(/\s\d+\.$/, '').trim();
+
   return res.status(200).json({
     content,
     section: data.section,
