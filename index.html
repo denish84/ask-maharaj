@@ -126,6 +126,44 @@ tailwind.config = {
   .chip:hover  { background: rgba(232,131,42,.2); border-color: rgba(232,131,42,.42); color: #f5a623; }
   .chip:active { transform: scale(.96); }
 
+  .explore-deeper-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(232,131,42,.06);
+    border: 1px solid rgba(232,131,42,.2);
+    border-radius: 12px;
+    color: rgba(245,166,35,.95);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease;
+  }
+  .explore-deeper-toggle:hover {
+    background: rgba(232,131,42,.12);
+    border-color: rgba(232,131,42,.32);
+  }
+  .explore-deeper-chevron {
+    display: inline-block;
+    font-size: 10px;
+    opacity: 0.75;
+    transition: transform .22s ease;
+  }
+  .explore-deeper-panel { margin-top: 0; }
+  .explore-deep-btn {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    border-radius: 12px;
+    max-width: none;
+  }
+
   /* ── Question textarea (#q) ──
      Tailwind Preflight sets padding:0 + resize:vertical on textarea with the same
      specificity as a bare `textarea` rule but loads later — use #id to win cascade. */
@@ -427,6 +465,18 @@ tailwind.config = {
     <!-- Question chips (filled by setLang: 4 random from 12 per language) -->
     <div id="chipsWrap" class="flex flex-wrap gap-3 mt-6"></div>
 
+    <!-- Explore Deeper: expandable topics → fill #q -->
+    <div id="exploreDeeperSection" class="mt-6 pt-5" style="border-top:1px solid rgba(232,131,42,.12)">
+      <button type="button" id="exploreDeeperToggle" class="explore-deeper-toggle"
+              aria-expanded="false" aria-controls="exploreDeeperPanel">
+        <span id="exploreDeeperHeading">Explore Deeper</span>
+        <span class="explore-deeper-chevron" aria-hidden="true">▼</span>
+      </button>
+      <div id="exploreDeeperPanel" class="explore-deeper-panel" hidden style="display:none">
+        <div id="exploreDeeperBtns" class="flex flex-col gap-2 mt-4"></div>
+      </div>
+    </div>
+
     <!-- Recent questions -->
     <div id="recentWrap" class="mt-6 pt-5" style="display:none;border-top:1px solid rgba(232,131,42,.12)">
       <p class="text-[.6rem] uppercase tracking-widest font-semibold mb-1.5" style="color:rgba(232,131,42,.48)">Recently asked</p>
@@ -533,7 +583,33 @@ const DAILY_QUESTION_LIMIT = 20;
 let lastUiLang = null;
 let lastBikaRecordId = null;
 
+function initExploreDeeperUI() {
+  const toggle = document.getElementById('exploreDeeperToggle');
+  const panel = document.getElementById('exploreDeeperPanel');
+  const section = document.getElementById('exploreDeeperSection');
+  if (!toggle || !panel || !section || section.dataset.exploreInit === '1') return;
+  section.dataset.exploreInit = '1';
+  const chev = toggle.querySelector('.explore-deeper-chevron');
+  toggle.addEventListener('click', e => {
+    e.stopPropagation();
+    const willOpen = panel.hidden;
+    panel.hidden = !willOpen;
+    panel.style.display = willOpen ? 'block' : 'none';
+    toggle.setAttribute('aria-expanded', String(willOpen));
+    if (chev) chev.style.transform = willOpen ? 'rotate(180deg)' : '';
+  });
+  section.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-explore-q]');
+    if (!btn || !section.contains(btn)) return;
+    const qInput = document.getElementById('q');
+    qInput.value = btn.getAttribute('data-explore-q');
+    qInput.focus();
+    qInput.dispatchEvent(new Event('input'));
+  });
+}
+
 window.onload = () => {
+  initExploreDeeperUI();
   setLang(localStorage.getItem('amLang') || 'en');
   renderRecentQuestions();
 };
@@ -579,6 +655,15 @@ const LANG_STRINGS = {
     ],
     limitMsg: `🙏 Daily limit of ${DAILY_QUESTION_LIMIT} questions reached. Come back tomorrow. Jai Swaminarayan 🙏`,
     langSuffix: 'IMPORTANT: You must answer in English only.',
+    exploreDeeperTitle: 'Explore Deeper',
+    deepQuestions: [
+      { label: '🏛️ Five Eternal Entities', q: 'Who are the five eternal entities (Panch-Tattva) that govern the universe?' },
+      { label: '🧘 Path to Liberation', q: 'What are the four pillars of Ekantik Dharma — Dharma, Gnan, Vairagya, and Bhakti?' },
+      { label: '🕉️ God\'s Divine Form', q: 'What is the significance of understanding God as Sakar rather than just Nirakar?' },
+      { label: '🤝 Role of Satpurush', q: 'Why is the association with a Satpurush essential for liberation?' },
+      { label: '🌀 Nature of Maya', q: 'What is the nature of Maya and how does it prevent a soul from reaching God?' },
+      { label: '🎯 What is Akshardham?', q: 'What is the nature of the bliss in Akshardham and who is eligible to go there?' }
+    ],
   },
   gu: {
     placeholder: 'મહારાજને પ્રશ્ન પૂછો... 🙏',
@@ -599,6 +684,15 @@ const LANG_STRINGS = {
     ],
     limitMsg: `🙏 આજની ${DAILY_QUESTION_LIMIT} પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏`,
     langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
+    exploreDeeperTitle: 'ઊંડાણથી જાણો',
+    deepQuestions: [
+      { label: '🏛️ પંચ તત્વ', q: 'બ્રહ્માંડનું સંચાલન કરતા પાંચ અનાદિ તત્વો (પંચ-તત્વ) કયા છે?' },
+      { label: '🧘 મોક્ષનો માર્ગ', q: 'એકાંતિક ધર્મના ચાર સ્તંભો — ધર્મ, જ્ઞાન, વૈરાગ્ય અને ભક્તિ — શું છે?' },
+      { label: '🕉️ ભગવાનનું સ્વરૂપ', q: 'ભગવાનને માત્ર નિરાકાર નહીં પણ સાકાર સ્વરૂપવાન સમજવાનું મહત્વ શું છે?' },
+      { label: '🤝 સત્પુરુષનો સંગ', q: 'મોક્ષ મેળવવા માટે સત્પુરુષનો સંગ કેમ અનિવાર્ય છે?' },
+      { label: '🌀 માયાનું સ્વરૂપ', q: 'માયાનું સ્વરૂપ શું છે અને તે જીવને ભગવાન સુધી પહોંચવામાં કેવી રીતે અવરોધે છે?' },
+      { label: '🎯 અક્ષરધામ શું છે?', q: 'અક્ષરધામના સુખનું સ્વરૂપ શું છે અને ત્યાં જવા માટે કોણ લાયક છે?' }
+    ],
   }
 };
 
@@ -643,6 +737,31 @@ function setLang(lang) {
       document.getElementById('q').focus();
     });
   });
+
+  const exploreHeading = document.getElementById('exploreDeeperHeading');
+  if (exploreHeading) exploreHeading.textContent = s.exploreDeeperTitle;
+
+  const explorePanel = document.getElementById('exploreDeeperPanel');
+  const exploreToggle = document.getElementById('exploreDeeperToggle');
+  const exploreChev = exploreToggle && exploreToggle.querySelector('.explore-deeper-chevron');
+  if (explorePanel && exploreToggle) {
+    explorePanel.style.display = 'none';
+    explorePanel.hidden = true;
+    exploreToggle.setAttribute('aria-expanded', 'false');
+    if (exploreChev) exploreChev.style.transform = '';
+  }
+
+  const deepBtnClass = lang === 'gu' ? 'chip explore-deep-btn font-gujarati' : 'chip explore-deep-btn';
+  const exploreBtns = document.getElementById('exploreDeeperBtns');
+  if (exploreBtns && Array.isArray(s.deepQuestions)) {
+    exploreBtns.innerHTML = s.deepQuestions
+      .map(d => {
+        const qAttr = String(d.q).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+        const labelHtml = String(d.label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        return `<button type="button" class="${deepBtnClass}" data-explore-q="${qAttr}" aria-label="${labelHtml}">${labelHtml}</button>`;
+      })
+      .join('');
+  }
 
   document.getElementById('langEn').classList.toggle('lang-active', lang === 'en');
   document.getElementById('langGu').classList.toggle('lang-active', lang === 'gu');
