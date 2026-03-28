@@ -30,6 +30,25 @@ const TEACHING_PHRASES = [
   'ભક્તે જોઈએ'
 ];
 
+/**
+ * Mid-context cues (English). Used only in skipLongHistoryIntro: if the earliest
+ * match after the intro window is one of these, advance past that sentence and
+ * search again — they are not standalone teaching openers.
+ * Not added to Supabase filter (too generic).
+ */
+const MID_CONTEXT_SKIP_PHRASES = [
+  'For example',
+  'for example',
+  'for instance',
+  'In this way'
+];
+
+const MID_CONTEXT_SKIP_LOWER = new Set(
+  MID_CONTEXT_SKIP_PHRASES.map(p => p.toLowerCase())
+);
+
+const SKIP_INTRO_PHRASES = [...TEACHING_PHRASES, ...MID_CONTEXT_SKIP_PHRASES];
+
 const TEACHING_CONTENT_OR = TEACHING_PHRASES.map(
   p => `content.ilike.%${p}%`
 ).join(',');
@@ -44,37 +63,75 @@ function stripThroughSamvatIntro(s) {
   return t.slice(m.index).trim();
 }
 
+/** Index after sentence-ending . ! ? (and optional quotes) starting search at `from`. */
+function nextSentenceStart(t, from) {
+  const max = t.length;
+  for (let i = Math.max(0, from); i < max; i++) {
+    const ch = t[i];
+    if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t[i + 1] || '')) {
+      let j = i + 1;
+      while (j < max && /\s/.test(t[j])) j++;
+      while (j < max && /["'\u201C\u201D\u2018\u2019«»]/.test(t[j])) j++;
+      return j;
+    }
+  }
+  return max;
+}
+
 /**
- * If narrative intro is long (>200 chars before first cue), start near teaching:
- * first teaching phrase or opening quote (curly/straight), snapped to sentence or word boundary.
+ * If narrative intro is long (>200 chars before first cue), start near teaching.
+ * Mid-context phrases (for example, …) only advance the search past their sentence;
+ * the slice uses the first non-mid cue (teaching phrase or opening quote).
  */
 function skipLongHistoryIntro(s) {
   const t = s.trim();
   if (t.length <= 200) return t;
 
-  let anchor = -1;
-
   const lower = t.toLowerCase();
-  for (const phrase of TEACHING_PHRASES) {
-    const p = phrase.toLowerCase();
-    let from = 0;
-    let idx;
-    while ((idx = lower.indexOf(p, from)) !== -1) {
-      if (idx > 200 && (anchor === -1 || idx < anchor)) anchor = idx;
-      from = idx + 1;
+  let minFrom = 200;
+
+  for (;;) {
+    let anchor = -1;
+    let anchorIsMidContext = false;
+
+    for (const phrase of SKIP_INTRO_PHRASES) {
+      const p = phrase.toLowerCase();
+      let from = 0;
+      let idx;
+      while ((idx = lower.indexOf(p, from)) !== -1) {
+        if (idx >= minFrom && idx > 200 && (anchor === -1 || idx < anchor)) {
+          anchor = idx;
+          anchorIsMidContext = MID_CONTEXT_SKIP_LOWER.has(p);
+        }
+        from = idx + 1;
+      }
     }
+
+    const quoteRe = /[""«]/g;
+    let qm;
+    while ((qm = quoteRe.exec(t)) !== null) {
+      if (
+        qm.index >= minFrom &&
+        qm.index > 200 &&
+        (anchor === -1 || qm.index < anchor)
+      ) {
+        anchor = qm.index;
+        anchorIsMidContext = false;
+      }
+    }
+
+    if (anchor === -1) return t;
+
+    if (anchorIsMidContext) {
+      const after = nextSentenceStart(t, anchor);
+      if (after >= t.length || after <= minFrom) return t;
+      minFrom = after;
+      continue;
+    }
+
+    const start = smartSliceStartBefore(t, anchor);
+    return t.slice(start).trim();
   }
-
-  const quoteRe = /[""«]/g;
-  let qm;
-  while ((qm = quoteRe.exec(t)) !== null) {
-    if (qm.index > 200 && (anchor === -1 || qm.index < anchor)) anchor = qm.index;
-  }
-
-  if (anchor === -1) return t;
-
-  const start = smartSliceStartBefore(t, anchor);
-  return t.slice(start).trim();
 }
 
 /** Prefer start after last .!? + space within 120 chars before anchor; else after last space in 80 chars. */
@@ -110,6 +167,32 @@ function trimMidSentenceStart(s) {
       if (rest.length >= 40) return rest;
       return t;
     }
+  }
+  return t;
+}
+
+/** If excerpt ends at '.', include any closing quotes immediately after (e.g. …Khãchar."). */
+function extendThroughClosingQuotes(capped, indexAfterPeriod) {
+  let end = indexAfterPeriod;
+  while (
+    end < capped.length &&
+    /["'\u201C\u201D\u2018\u2019«»]/.test(capped[end])
+  ) {
+    end++;
+  }
+  return end;
+}
+
+/** If excerpt opens with mid-context filler, drop through the next sentence boundary. */
+function trimLeadingMidContextOpener(s) {
+  let t = s.trim();
+  const openers = /^(for example|for instance|in this way)\b/i;
+  for (let guard = 0; guard < 8; guard++) {
+    const m = openers.exec(t);
+    if (!m) break;
+    const after = nextSentenceStart(t, m.index + m[0].length);
+    if (after >= t.length || after <= 0) break;
+    t = t.slice(after).trim();
   }
   return t;
 }
@@ -172,7 +255,13 @@ export default async function handler(req, res) {
 
   const capped = content.slice(0, 400);
   const lastPeriod = capped.lastIndexOf('.');
-  let excerpt = lastPeriod > 100 ? capped.slice(0, lastPeriod + 1) : capped;
+  let excerpt;
+  if (lastPeriod > 100) {
+    const end = extendThroughClosingQuotes(capped, lastPeriod + 1);
+    excerpt = capped.slice(0, end);
+  } else {
+    excerpt = capped;
+  }
   if (excerpt.length < 150) excerpt = capped;
 
   content = excerpt;
@@ -188,6 +277,8 @@ export default async function handler(req, res) {
     /([\p{L}\p{M}\p{N}]+)-\s+([\p{L}\p{M}\p{N}]+)/gu,
     '$1-$2'
   );
+
+  content = trimLeadingMidContextOpener(content);
 
   // Trailing Vachanamrut / page-style number leaked into chunk (e.g. " 74." or " 199. ")
   content = content.replace(/\s+\d+[\.\s]*$/, '').trim();

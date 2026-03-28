@@ -379,15 +379,14 @@ tailwind.config = {
     height: 2px;
     background: linear-gradient(90deg, transparent, rgba(245,166,35,0.4), transparent);
   }
-  .daily-om {
+  .daily-card-flourish {
     text-align: center;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 1.35rem;
-    line-height: 1;
-    color: rgba(245,166,35,0.38);
+    font-size: 11px;
+    letter-spacing: 0.55em;
+    color: rgba(245, 166, 35, 0.45);
     margin-bottom: 10px;
-    filter: drop-shadow(0 0 10px rgba(245,166,35,0.12));
-    text-shadow: 0 0 10px rgba(255, 191, 0, 0.6);
+    font-weight: 600;
+    text-shadow: 0 0 12px rgba(255, 191, 0, 0.35);
   }
   .daily-eyebrow {
     font-size: 9px;
@@ -568,7 +567,7 @@ tailwind.config = {
 
   <div id="dailyBanner" class="daily-lang-en" style="display:none">
     <div class="daily-inner">
-      <div class="daily-om" aria-hidden="true">ॐ</div>
+      <div class="daily-card-flourish" aria-hidden="true">✦</div>
       <div class="daily-eyebrow" id="dailyWisdomTitle">✦ Daily Wisdom ✦</div>
       <blockquote class="daily-text daily-text--scripture" id="dailyText"></blockquote>
       <div class="daily-pills-row" id="dailyPills" aria-label="Source"></div>
@@ -1405,19 +1404,16 @@ function escDailyHtml(s) {
 function renderDailyPills(d) {
   const el = document.getElementById('dailyPills');
   if (!el || !d) return;
-  const sec = d.section ? String(d.section).trim() : '';
   const vach = d.vachanamrut_number ? String(d.vachanamrut_number).trim() : '';
-  const pagePart =
-    d.page_start != null && d.page_start !== '' ? ` · p. ${d.page_start}` : '';
-
-  let line = '';
-  if (sec && vach) line = `${sec} · ${vach}${pagePart}`;
-  else if (sec) line = `${sec}${pagePart}`;
-  else if (vach) line = `${vach}${pagePart}`;
-  else {
+  if (!vach) {
     el.innerHTML = '';
     return;
   }
+  const pagePart =
+    d.page_start != null && d.page_start !== ''
+      ? ` · p. ${d.page_start}`
+      : '';
+  const line = `${vach}${pagePart}`;
   el.innerHTML = `<span class="daily-pill daily-pill--citation">${escDailyHtml(line)}</span>`;
 }
 
@@ -1451,10 +1447,11 @@ function shareDailyWisdom() {
   const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
   const head = s.dailyShareHead || '*Daily Wisdom from Ask Maharaj*';
   const readMore = s.dailyShareReadMore || '✨ Read more:';
-  const refCore = [p.section, p.vachanamrut_number].filter(Boolean).join(' ');
+  const vachStr = p.vachanamrut_number ? String(p.vachanamrut_number).trim() : '';
   const pageStr =
     p.page_start != null && p.page_start !== '' ? ` · p. ${p.page_start}` : '';
-  const dashLine = refCore ? `— ${refCore}${pageStr}` : '';
+  const refLine = vachStr ? `${vachStr}${pageStr}` : '';
+  const dashLine = refLine ? `— ${refLine}` : '';
   const body = String(p.content).replace(/"/g, "'");
   const t =
     head +
