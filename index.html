@@ -387,6 +387,7 @@ tailwind.config = {
     color: rgba(245,166,35,0.38);
     margin-bottom: 10px;
     filter: drop-shadow(0 0 10px rgba(245,166,35,0.12));
+    text-shadow: 0 0 10px rgba(255, 191, 0, 0.6);
   }
   .daily-eyebrow {
     font-size: 9px;
@@ -431,10 +432,16 @@ tailwind.config = {
     text-align: center;
     line-height: 1.3;
   }
-  .daily-pill--ref {
+  .daily-pill--citation {
     text-transform: none;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     font-style: italic;
+    font-size: 11px;
+    color: rgba(253, 246, 236, 0.88);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 7px 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   .daily-share-btn {
     display: flex;
@@ -780,6 +787,8 @@ const LANG_STRINGS = {
     exploreDeeperTitle: 'Explore Deeper',
     dailyWisdomTitle: '✦ Daily Wisdom ✦',
     dailyShareWhatsApp: 'Share on WhatsApp',
+    dailyShareHead: '*Daily Wisdom from Ask Maharaj*',
+    dailyShareReadMore: '✨ Read more:',
     deepQuestions: [
       { label: '🏛️ Five Eternal Entities', q: 'Who are the five eternal entities (Panch-Tattva) that govern the universe?' },
       { label: '🧘 Path to Liberation', q: 'What are the four pillars of Ekantik Dharma — Dharma, Gnan, Vairagya, and Bhakti?' },
@@ -811,6 +820,8 @@ const LANG_STRINGS = {
     exploreDeeperTitle: 'ઊંડાણથી જાણો',
     dailyWisdomTitle: '✦ આજનો વિચાર ✦',
     dailyShareWhatsApp: 'વોટ્સએપ પર શેર કરો',
+    dailyShareHead: '*Ask Maharaj માંથી આજનો વિચાર*',
+    dailyShareReadMore: '✨ વધુ વાંચો:',
     deepQuestions: [
       { label: '🏛️ પંચ તત્વ', q: 'બ્રહ્માંડનું સંચાલન કરતા પાંચ અનાદિ તત્વો (પંચ-તત્વ) કયા છે?' },
       { label: '🧘 મોક્ષનો માર્ગ', q: 'એકાંતિક ધર્મના ચાર સ્તંભો — ધર્મ, જ્ઞાન, વૈરાગ્ય અને ભક્તિ — શું છે?' },
@@ -1378,17 +1389,20 @@ function escDailyHtml(s) {
 function renderDailyPills(d) {
   const el = document.getElementById('dailyPills');
   if (!el || !d) return;
-  const pills = [];
-  if (d.section) pills.push(`<span class="daily-pill">${escDailyHtml(d.section)}</span>`);
-  const refParts = [];
-  if (d.vachanamrut_number) refParts.push(d.vachanamrut_number);
-  if (d.page_start != null && d.page_start !== '') refParts.push(`p.${d.page_start}`);
-  if (refParts.length) {
-    pills.push(
-      `<span class="daily-pill daily-pill--ref">${escDailyHtml(refParts.join(' · '))}</span>`
-    );
+  const sec = d.section ? String(d.section).trim() : '';
+  const vach = d.vachanamrut_number ? String(d.vachanamrut_number).trim() : '';
+  const pagePart =
+    d.page_start != null && d.page_start !== '' ? ` · p. ${d.page_start}` : '';
+
+  let line = '';
+  if (sec && vach) line = `${sec} · ${vach}${pagePart}`;
+  else if (sec) line = `${sec}${pagePart}`;
+  else if (vach) line = `${vach}${pagePart}`;
+  else {
+    el.innerHTML = '';
+    return;
   }
-  el.innerHTML = pills.join('');
+  el.innerHTML = `<span class="daily-pill daily-pill--citation">${escDailyHtml(line)}</span>`;
 }
 
 function syncDailyBannerChrome(lang) {
@@ -1413,23 +1427,24 @@ function shareDailyWisdom() {
   const p = window._lastDailyPayload;
   if (!p || !p.content) return;
   const lang = localStorage.getItem('amLang') || 'en';
-  const heading =
-    lang === 'gu' ? 'આજનો વિચાર · Ask Maharaj' : 'Daily Wisdom · Ask Maharaj';
-  const ref = [
-    p.section,
-    p.vachanamrut_number,
-    p.page_start != null && p.page_start !== '' ? `p.${p.page_start}` : ''
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
+  const head = s.dailyShareHead || '*Daily Wisdom from Ask Maharaj*';
+  const readMore = s.dailyShareReadMore || '✨ Read more:';
+  const refCore = [p.section, p.vachanamrut_number].filter(Boolean).join(' ');
+  const pageStr =
+    p.page_start != null && p.page_start !== '' ? ` · p. ${p.page_start}` : '';
+  const dashLine = refCore ? `— ${refCore}${pageStr}` : '';
+  const body = String(p.content).replace(/"/g, "'");
   const t =
-    '🕉 *' +
-    heading +
-    '*\n\n' +
-    p.content +
-    (ref ? '\n\n_' + ref + '_' : '') +
-    '\n\n👉 https://ask-maharaj.vercel.app';
-  window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+    head +
+    '\n\n"' +
+    body +
+    '"\n\n' +
+    (dashLine ? dashLine + '\n\n' : '') +
+    readMore +
+    ' https://ask-maharaj.vercel.app';
+  const url = 'whatsapp://send?text=' + encodeURIComponent(t);
+  window.open(url, '_blank');
 }
 
 async function loadDailyTeaching() {
