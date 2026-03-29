@@ -291,6 +291,36 @@ async function retrieveContext(question) {
   return { context, citations };
 }
 
+/**
+ * When the model says the question is not answered by scripture, retrieval chunks
+ * are often unrelated (embedding noise). Omit citations so the client does not
+ * show fake "sources" or a place photo for off-topic questions.
+ */
+function shouldOmitScriptureCitations(aiAnswer) {
+  const s = String(aiAnswer || '').trim();
+  if (!s) return false;
+  const low = s.toLowerCase();
+  if (
+    /not\s+directly\s+explained/i.test(low) &&
+    /vachan|swamini\s+vato/i.test(low)
+  ) {
+    return true;
+  }
+  if (/cannot\s+be\s+(clearly\s+)?derived\s+from.*vachan/i.test(low)) {
+    return true;
+  }
+  // Gujarati deflections (scripture does not directly address the question)
+  if (
+    /વચનામૃત/.test(s) &&
+    /(સીધો\s+ઉલ્લેખ\s+નથી|સીધું\s+નથી\s+સમજાતું|નથી\s+સમજાતું|આવતું\s+નથી|સ્પષ્ટ\s+નથી)/.test(
+      s
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export default async function handler(req, res) {
   const requestStartMs = Date.now();
   const origin = req.headers.origin || '';
@@ -497,7 +527,16 @@ export default async function handler(req, res) {
       };
     }
 
-    return res.status(200).json({ ...data, recordId, bikaLog, citations });
+    const citationsOut = shouldOmitScriptureCitations(aiAnswer)
+      ? []
+      : citations;
+
+    return res.status(200).json({
+      ...data,
+      recordId,
+      bikaLog,
+      citations: citationsOut
+    });
     
   } catch (err) {
     // Best-effort error telemetry for Bika
