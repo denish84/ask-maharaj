@@ -362,6 +362,21 @@ tailwind.config = {
     #dailyBanner { opacity: 1 !important; transform: none !important; }
   }
 
+  /* ── Desktop-only: subtle footnote (not an alert) ── */
+  .desktop-mobile-footnote {
+    margin: 1rem auto 0;
+    max-width: 22rem;
+    padding: 0 16px;
+    text-align: center;
+    font-size: 0.65rem;
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+    color: rgba(232, 220, 200, 0.4);
+    font-style: italic;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-weight: 400;
+  }
+
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -374,7 +389,7 @@ tailwind.config = {
     border-radius: 999px;
     border: 1px solid rgba(232,131,42,.28);
     background: rgba(232,131,42,.06);
-    color: rgba(232,220,200,.62);
+    color: rgba(232,220,200,.82);
     font-family: 'Noto Serif Gujarati', 'Crimson Pro', serif;
     font-size: 13px;
     cursor: pointer;
@@ -817,18 +832,15 @@ tailwind.config = {
 
 </div><!-- /main -->
 
-<!-- Desktop "best on mobile" hint — hidden on ≤520px -->
-<div class="relative z-10 pointer-events-none mt-4 flex justify-center"
-     style="display:none" id="desktopHint">
-  <div class="glass rounded-full px-5 py-2.5 text-sm italic"
-       style="color:rgba(232,220,200,.72);border-color:rgba(232,131,42,.2);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)">
-    📱 Best experienced on mobile
-  </div>
-</div>
+<!-- Desktop-only note — hidden on ≤520px -->
+<p class="desktop-mobile-footnote relative z-10 pointer-events-none"
+   id="desktopHint" style="display:none" role="note">
+  Best experienced on mobile
+</p>
 <script>
   (function() {
     var hint = document.getElementById('desktopHint');
-    function checkWidth() { hint.style.display = window.innerWidth > 520 ? 'flex' : 'none'; }
+    function checkWidth() { hint.style.display = window.innerWidth > 520 ? 'block' : 'none'; }
     checkWidth();
     window.addEventListener('resize', checkWidth);
   })();
