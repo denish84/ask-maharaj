@@ -548,12 +548,34 @@ tailwind.config = {
     font-style: italic;
     text-align: start;
   }
-  /* Word stagger + gold flash (~45–55ms spacing, ≤~1.05s total lead-in); off when reduced motion */
+  /* Word stagger + gold flash — inline-block required: iOS Safari ignores transform on inline */
   .daily-text.daily-text--scripture.daily-quote--stagger .daily-word {
-    display: inline;
+    display: inline-block;
+    vertical-align: baseline;
     opacity: 0;
     transform: translate3d(0, 0.12em, 0);
+    -webkit-animation: dailyWordReveal 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     animation: dailyWordReveal 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @-webkit-keyframes dailyWordReveal {
+    0% {
+      opacity: 0;
+      -webkit-transform: translate3d(0, 0.12em, 0);
+      transform: translate3d(0, 0.12em, 0);
+      color: rgba(245, 166, 35, 0.98);
+      text-shadow: 0 0 14px rgba(245, 166, 35, 0.45);
+    }
+    50% {
+      color: rgba(252, 211, 120, 0.98);
+      text-shadow: 0 0 10px rgba(245, 166, 35, 0.35);
+    }
+    100% {
+      opacity: 1;
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+      color: rgba(255, 255, 255, 0.88);
+      text-shadow: none;
+    }
   }
   @keyframes dailyWordReveal {
     0% {
@@ -575,6 +597,7 @@ tailwind.config = {
   }
   @media (prefers-reduced-motion: reduce) {
     .daily-text.daily-text--scripture.daily-quote--stagger .daily-word {
+      -webkit-animation: none !important;
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;
@@ -1132,12 +1155,32 @@ function mountDailyQuoteStagger(el, text) {
       const span = document.createElement('span');
       span.className = 'daily-word';
       span.textContent = part;
-      span.style.animationDelay = `${(wordIndex * slotSec).toFixed(3)}s`;
+      const d = `${(wordIndex * slotSec).toFixed(3)}s`;
+      span.style.webkitAnimationDelay = d;
+      span.style.animationDelay = d;
       wordIndex += 1;
       el.appendChild(span);
     }
   });
   el.classList.add('daily-quote--stagger');
+  /* iOS/WebKit: force layout so animations start; fallback if they never run (opacity stuck at 0) */
+  void el.offsetHeight;
+  const fallbackMs = Math.min(4500, Math.ceil((slotSec * Math.max(0, n - 1) + 0.65) * 1000) + 200);
+  setTimeout(() => {
+    if (!el.classList.contains('daily-quote--stagger')) return;
+    el.querySelectorAll('.daily-word').forEach(w => {
+      const win = /** @type {HTMLElement} */ (w);
+      const op = parseFloat(getComputedStyle(win).opacity);
+      if (op < 0.95) {
+        win.style.webkitAnimation = 'none';
+        win.style.animation = 'none';
+        win.style.opacity = '1';
+        win.style.transform = 'none';
+        win.style.color = 'rgba(255,255,255,0.88)';
+        win.style.textShadow = 'none';
+      }
+    });
+  }, fallbackMs);
 }
 
 function applyLoadedDailyText(lang) {
