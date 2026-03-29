@@ -753,13 +753,23 @@ function initExploreDeeperUI() {
   if (!toggle || !panel || !section || section.dataset.exploreInit === '1') return;
   section.dataset.exploreInit = '1';
   const chev = toggle.querySelector('.explore-deeper-chevron');
+  function closeExplorePanel() {
+    panel.hidden = true;
+    panel.style.display = 'none';
+    toggle.setAttribute('aria-expanded', 'false');
+    if (chev) chev.style.transform = '';
+  }
   toggle.addEventListener('click', e => {
     e.stopPropagation();
     const willOpen = panel.hidden;
-    panel.hidden = !willOpen;
-    panel.style.display = willOpen ? 'block' : 'none';
-    toggle.setAttribute('aria-expanded', String(willOpen));
-    if (chev) chev.style.transform = willOpen ? 'rotate(180deg)' : '';
+    if (willOpen) {
+      panel.hidden = false;
+      panel.style.display = 'block';
+      toggle.setAttribute('aria-expanded', 'true');
+      if (chev) chev.style.transform = 'rotate(180deg)';
+    } else {
+      closeExplorePanel();
+    }
   });
   section.addEventListener('click', e => {
     const btn = e.target.closest('button[data-explore-q]');
@@ -768,6 +778,7 @@ function initExploreDeeperUI() {
     qInput.value = btn.getAttribute('data-explore-q');
     qInput.focus();
     qInput.dispatchEvent(new Event('input'));
+    closeExplorePanel();
   });
 }
 
