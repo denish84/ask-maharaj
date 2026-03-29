@@ -149,7 +149,8 @@ tailwind.config = {
   #answerImageCaption {
     display: none;
     text-align: center;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
     letter-spacing: 0.08em;
     color: rgba(245, 166, 35, 0.72);
     font-family: 'Crimson Pro', serif;
@@ -360,6 +361,20 @@ tailwind.config = {
     line-height: 1.7;
     color: #fdf6ec;
     text-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  #ansText.answer-text strong { font-weight: 600; }
+  #ansText.answer-text em { font-style: italic; }
+  /* Repeated question — readable contrast (WCAG-friendly on dark card) */
+  .ans-q-echo {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: rgba(232, 220, 200, 0.72);
+  }
+  /* Keyboard focus — WCAG 2.4.7 Focus Visible */
+  #foldBtn:focus-visible,
+  #ansCard .wa-share-btn:focus-visible {
+    outline: 2px solid rgba(245, 166, 35, 0.95);
+    outline-offset: 3px;
   }
 
   .scripture-cite {
@@ -795,7 +810,7 @@ tailwind.config = {
        style="background:rgba(180,40,40,.12);border:1px solid rgba(220,80,80,.35);backdrop-filter:blur(12px);color:#f0a0a0"></div>
 
   <!-- ── Answer card (scripture scroll) ── -->
-  <div id="ansCard" class="relative rounded-[10px] mb-10 overflow-hidden"
+  <div id="ansCard" class="relative rounded-[10px] mb-10 overflow-hidden" role="region" aria-labelledby="ansCardTitle"
        style="background:linear-gradient(180deg,rgba(253,246,236,.04) 0%,rgba(15,6,0,.2) 100%),rgba(20,10,4,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(232,131,42,.38);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset,0 24px 48px rgba(0,0,0,.45),0 0 80px rgba(232,131,42,.08)">
 
     <img id="answerImage" src="" alt="" aria-hidden="true" />
@@ -804,13 +819,13 @@ tailwind.config = {
     <div class="relative z-10 p-6 pt-7">
 
       <!-- User question echo -->
-      <p id="qEcho" class="text-sm italic mb-4 leading-relaxed" style="color:rgba(232,220,200,.48)"></p>
+      <p id="qEcho" class="ans-q-echo italic mb-4 leading-relaxed"></p>
 
       <!-- Head row -->
       <div class="flex items-center gap-2 mb-4 flex-wrap">
         <span class="text-[1.3rem] leading-none" aria-hidden="true"
               style="filter:drop-shadow(0 2px 8px rgba(232,131,42,.32))">📖</span>
-        <span class="text-xs uppercase tracking-[.14em] font-semibold font-serif"
+        <span id="ansCardTitle" class="text-xs uppercase tracking-[.14em] font-semibold font-serif"
               style="color:rgba(245,166,35,.95)">Maharaj Kahe Chhe</span>
         <span id="cTag" class="ml-auto"
               style="display:none;font-size:16px;opacity:0.6;filter:drop-shadow(0 0 4px rgba(232,131,42,0.5))">🕉</span>
@@ -1371,7 +1386,7 @@ function mdToHtml(text) {
     // strip lone list markers / empty bullets (e.g. "*" or "- " with no text) before other transforms
     .replace(/^\s*[-•*●]\s*$/gm, '')
     // headings → styled paragraph
-    .replace(/^#{1,3}\s+(.+)$/gm, '<p style="font-weight:600;margin:10px 0 4px;color:#f5a623">$1</p>')
+    .replace(/^#{1,3}\s+(.+)$/gm, '<p style="font-weight:600;margin:0.65rem 0 0.25rem;color:#f5a623">$1</p>')
     // scripture refs: "Gadhada I-21", "ગઢડા I-80" (before ** so bold+cite still composes)
     .replace(
       /(^|[^\p{L}0-9_])((?:Gadhada|Sarangpur|Kariyani|Loya|Panchala|Vadtal|Amdavad|Jetalpur|ગઢડા|સારંગપુર|કારિયાણી|લોયા|પંચાળા|વડતાલ|અમદાવાદ|જેતલપુર)\s+(?:[IVXLC]+\s*)?[-–]?\s*\d+)/gu,
