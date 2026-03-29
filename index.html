@@ -197,6 +197,19 @@ tailwind.config = {
   .chip:hover  { background: rgba(232,131,42,.2); border-color: rgba(232,131,42,.42); color: #f5a623; }
   .chip:active { transform: scale(.96); }
 
+  /* Suggested questions: fixed 2×2 so chips don’t wrap 3+1 */
+  #chipsWrap {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 1.5rem;
+  }
+  #chipsWrap .chip {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
   .explore-deeper-toggle {
     display: flex;
     align-items: center;
@@ -422,8 +435,8 @@ tailwind.config = {
   .reaction-btn.selected { animation: reactionPop .32s cubic-bezier(.34,1.56,.64,1) both; }
 
   #dailyBanner {
-    margin: 0 0 24px;
-    padding: 0 4px;
+    margin: 0 0 14px;
+    padding: 0 2px;
     animation: dailyFadeIn 1.2s ease forwards;
     opacity: 0;
   }
@@ -438,8 +451,8 @@ tailwind.config = {
     gap: 0;
     background: linear-gradient(135deg, rgba(245,166,35,0.06) 0%, rgba(139,90,43,0.08) 100%);
     border: 1px solid rgba(245,166,35,0.25);
-    border-radius: 12px;
-    padding: 16px 18px 14px;
+    border-radius: 10px;
+    padding: 10px 12px 8px;
     position: relative;
     overflow: hidden;
   }
@@ -452,18 +465,18 @@ tailwind.config = {
   }
   .daily-card-flourish {
     text-align: center;
-    font-size: 11px;
-    letter-spacing: 0.55em;
+    font-size: 9px;
+    letter-spacing: 0.45em;
     color: rgba(245, 166, 35, 0.45);
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     font-weight: 600;
     text-shadow: 0 0 12px rgba(255, 191, 0, 0.35);
   }
   .daily-eyebrow {
-    font-size: 9px;
-    letter-spacing: 0.26em;
+    font-size: 8px;
+    letter-spacing: 0.22em;
     color: rgba(245,166,35,0.55);
-    margin-bottom: 12px;
+    margin-bottom: 6px;
     text-align: center;
     font-weight: 600;
   }
@@ -473,10 +486,10 @@ tailwind.config = {
   }
   .daily-text.daily-text--scripture {
     font-family: Georgia, 'Times New Roman', 'Noto Serif Gujarati', serif;
-    font-size: 15px;
-    line-height: 1.85;
+    font-size: 14px;
+    line-height: 1.58;
     color: rgba(255,255,255,0.88);
-    margin: 0 0 14px;
+    margin: 0 0 8px;
     padding: 0 2px;
     border: none;
     font-style: italic;
@@ -488,12 +501,12 @@ tailwind.config = {
   .daily-lang-note {
     display: none;
     font-family: 'Noto Serif Gujarati', Georgia, serif;
-    font-size: 11px;
-    line-height: 1.45;
+    font-size: 10px;
+    line-height: 1.4;
     text-align: center;
     color: rgba(232, 220, 200, 0.52);
-    margin: 8px 0 12px;
-    padding: 0 10px;
+    margin: 4px 0 6px;
+    padding: 0 8px;
     font-style: italic;
   }
   .daily-lang-note.daily-lang-note--visible {
@@ -502,19 +515,19 @@ tailwind.config = {
   .daily-pills-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     justify-content: center;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
   .daily-pill {
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(245,166,35,0.72);
     background: rgba(245,166,35,0.07);
     border: 1px solid rgba(245,166,35,0.2);
     border-radius: 999px;
-    padding: 5px 12px;
+    padding: 3px 10px;
     font-family: 'Crimson Pro', Georgia, serif;
     max-width: 100%;
     text-align: center;
@@ -524,11 +537,11 @@ tailwind.config = {
     text-transform: none;
     letter-spacing: 0.05em;
     font-style: italic;
-    font-size: 11px;
+    font-size: 10px;
     color: rgba(253, 246, 236, 0.88);
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    padding: 7px 16px;
+    padding: 4px 12px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   .wa-share-btn {
@@ -556,7 +569,18 @@ tailwind.config = {
   }
   .wa-share-btn:active { transform: scale(0.98); }
   .daily-share-btn {
-    width: 100%;
+    width: auto;
+    align-self: center;
+    max-width: 100%;
+    padding: 5px 12px;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: 0 0 8px rgba(232, 131, 42, 0.16);
+  }
+  .daily-share-btn .wa-share-wa-icon {
+    width: 14px;
+    height: 14px;
   }
   .wa-share-wa-icon {
     flex-shrink: 0;
@@ -650,7 +674,8 @@ tailwind.config = {
 
     <h1 class="gold-text font-gujarati font-bold tracking-[.02em] mb-4"
         style="font-size:clamp(2rem,7vw,2.4rem)">Ask Maharaj</h1>
-    <p class="italic font-light text-[1.05rem] mb-1" style="color:rgba(232,220,200,.72)">Vachanamrut ni Vaat, Maharaj ni Saath</p>
+    <p class="italic font-normal mb-1"
+       style="font-size:clamp(1.12rem,3.2vw,1.22rem);color:rgba(232,220,200,.82);letter-spacing:.01em">Vachanamrut ni Vaat, Maharaj ni Saath</p>
     <p class="text-[.65rem] uppercase tracking-[.14em] mt-4" style="color:rgba(245,200,155,.88)">Swaminarayan Satsang · Surat</p>
   </header>
 
@@ -690,7 +715,7 @@ tailwind.config = {
     <div class="flex items-center gap-3 mb-5">
       <div class="flex-1 h-px" style="background:linear-gradient(to right,rgba(232,131,42,.35),transparent)"></div>
       <label class="text-[.75rem] uppercase tracking-[.14em] font-semibold"
-             style="color:rgba(232,131,42,.85)">🙏 Your Question</label>
+             style="color:rgba(232,131,42,.85)">Your Question</label>
       <div class="flex-1 h-px" style="background:linear-gradient(to left,rgba(232,131,42,.35),transparent)"></div>
     </div>
 
@@ -698,7 +723,7 @@ tailwind.config = {
       placeholder="Ask Maharaj anything... 🙏"></textarea>
 
     <!-- Question chips (filled by setLang: 4 random from 12 per language) -->
-    <div id="chipsWrap" class="flex flex-wrap gap-3 mt-6"></div>
+    <div id="chipsWrap"></div>
 
     <!-- Explore Deeper: expandable topics → fill #q -->
     <div id="exploreDeeperSection" class="mt-6 pt-5" style="border-top:1px solid rgba(232,131,42,.12)">
