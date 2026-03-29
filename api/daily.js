@@ -5,6 +5,46 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+/** Same allowlist as api/ask.js (plus ALLOWED_ORIGINS env). */
+const ALLOWED_ORIGINS = new Set([
+  'https://ask-maharaj.vercel.app',
+  'https://www.ask-maharaj.vercel.app'
+]);
+
+function setCorsHeaders(res, origin) {
+  if (!origin) return;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+function getAllowedOrigins() {
+  const envOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+  return new Set([...ALLOWED_ORIGINS, ...envOrigins]);
+}
+
+function isAllowedOrigin(origin, req) {
+  try {
+    const originUrl = new URL(origin);
+    const requestHost =
+      req.headers['x-forwarded-host'] ||
+      req.headers.host ||
+      '';
+
+    if (requestHost && originUrl.host === requestHost) {
+      return true;
+    }
+
+    return getAllowedOrigins().has(origin);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Phrases that signal direct teaching / Maharaj’s words (English + Gujarati).
  * Used for Supabase `or` filter on `content` when picking a daily row.
@@ -35,8 +75,34 @@ const TEACHING_CONTENT_OR = TEACHING_PHRASES.map(
 ).join(',');
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=3600');
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin || '';
+    if (!origin || !isAllowedOrigin(origin, req)) {
+      return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
+    }
+    setCorsHeaders(res, origin);
+    return res.status(204).end();
+  }
+
+  if (req.method !== 'GET') return res.status(405).end();
+
+  const origin = req.headers.origin || '';
+  const secFetchSite = (req.headers['sec-fetch-site'] || '').toLowerCase();
+  const sameOriginFetch = secFetchSite === 'same-origin' || secFetchSite === 'none';
+
+  if (origin) {
+    if (!isAllowedOrigin(origin, req)) {
+      return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
+    }
+  } else if (!sameOriginFetch) {
+    return res.status(403).json({ error: 'FORBIDDEN_ORIGIN' });
+  }
+  if (origin) setCorsHeaders(res, origin);
+
+  res.setHeader(
+    'Cache-Control',
+    's-maxage=86400, stale-while-revalidate=3600'
+  );
 
   // Deterministic seed from today's date (IST) — same chunk all day for all users
   const now = new Date();
@@ -49,6 +115,7 @@ export default async function handler(req, res) {
     .from('chunks')
     .select('*', { count: 'exact', head: true })
     .not('vachanamrut_number', 'is', null)
+    .not('content_clean', 'is', null)
     .or(TEACHING_CONTENT_OR);
 
   let total = count ?? 0;
@@ -57,7 +124,8 @@ export default async function handler(req, res) {
     const fallback = await supabase
       .from('chunks')
       .select('*', { count: 'exact', head: true })
-      .not('vachanamrut_number', 'is', null);
+      .not('vachanamrut_number', 'is', null)
+      .not('content_clean', 'is', null);
     total = fallback.count ?? 0;
   }
 
@@ -70,7 +138,8 @@ export default async function handler(req, res) {
   let rowQuery = supabase
     .from('chunks')
     .select('content_clean, section, vachanamrut_number, page_start')
-    .not('vachanamrut_number', 'is', null);
+    .not('vachanamrut_number', 'is', null)
+    .not('content_clean', 'is', null);
   if (teachingOnly) rowQuery = rowQuery.or(TEACHING_CONTENT_OR);
   const { data, error } = await rowQuery
     .order('id', { ascending: true })
