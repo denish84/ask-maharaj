@@ -87,6 +87,19 @@ tailwind.config = {
   #errBox        { display: none; }
   #errBox.show   { display: block; }
 
+  #answerImage {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px 10px 0 0;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #answerImage.loaded {
+    opacity: 1;
+  }
+
   /* ── Glass card ── */
   .glass {
     background: rgba(255,255,255,.055);
@@ -659,6 +672,8 @@ tailwind.config = {
   <div id="ansCard" class="relative rounded-[10px] mb-10 overflow-hidden"
        style="background:linear-gradient(180deg,rgba(253,246,236,.04) 0%,rgba(15,6,0,.2) 100%),rgba(20,10,4,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(232,131,42,.38);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset,0 24px 48px rgba(0,0,0,.45),0 0 80px rgba(232,131,42,.08)">
 
+    <img id="answerImage" src="" alt="" aria-hidden="true" />
+
     <div class="relative z-10 p-6 pt-7">
 
       <!-- User question echo -->
@@ -1041,8 +1056,14 @@ async function ask() {
     return;
   }
 
-  // Cache hit — free!
-  const hit = cache[cKey(cacheKey)];
+  // Cache hit — free! (string, or legacy { a } from older builds)
+  const rawHit = cache[cKey(cacheKey)];
+  const hit =
+    typeof rawHit === 'string'
+      ? rawHit
+      : rawHit && typeof rawHit === 'object' && typeof rawHit.a === 'string'
+        ? rawHit.a
+        : null;
   if (hit) {
     window._lastCitations = [];
     showAns(hit, true, 0);
@@ -1140,7 +1161,6 @@ async function ask() {
     localStorage.setItem('amDailyLimit', JSON.stringify(limitData));
     sessionStorage.setItem('amSession', sessionCount + 1);
 
-    // Save to cache
     cache[cKey(cacheKey)] = ans;
     const keys = Object.keys(cache);
     if (keys.length > 300) delete cache[keys[0]];
@@ -1277,6 +1297,21 @@ function showAns(text, cached, coins) {
   const question = document.getElementById('q').value.trim();
   const qEcho = document.getElementById('qEcho');
   if (qEcho) qEcho.textContent = question;
+  const imgEl = document.getElementById('answerImage');
+  if (imgEl) {
+    const imgUrl = getAnswerImage(question, window._lastCitations || []);
+    if (imgUrl) {
+      imgEl.src = imgUrl;
+      imgEl.style.display = 'block';
+      imgEl.classList.remove('loaded');
+      imgEl.onload = () => imgEl.classList.add('loaded');
+      if (imgEl.complete && imgEl.naturalWidth) imgEl.classList.add('loaded');
+    } else {
+      imgEl.style.display = 'none';
+      imgEl.src = '';
+      imgEl.classList.remove('loaded');
+    }
+  }
   if (question && !cached) saveRecentQuestion(question, text);
   document.getElementById('ansText').innerHTML = mdToHtml(text);
   // Remove old citations if any
@@ -1308,7 +1343,15 @@ function showAns(text, cached, coins) {
   setTimeout(() => c.scrollIntoView({ behavior: 'smooth', block: 'start' }), 680);
 }
 
-function hideAns() { document.getElementById('ansCard').classList.remove('show'); }
+function hideAns() {
+  document.getElementById('ansCard').classList.remove('show');
+  const imgEl = document.getElementById('answerImage');
+  if (imgEl) {
+    imgEl.style.display = 'none';
+    imgEl.src = '';
+    imgEl.classList.remove('loaded');
+  }
+}
 function showErr(m) { const e=document.getElementById('errBox'); e.textContent=m; e.classList.add('show'); }
 function hideErr() { document.getElementById('errBox').classList.remove('show'); }
 
@@ -1330,6 +1373,7 @@ document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') 
 // Recent questions
 function loadRecent(item) {
   document.getElementById('q').value = item.q;
+  window._lastCitations = Array.isArray(item.c) ? item.c : [];
   if (item.a) {
     showAns(item.a, true, 0);
     setTimeout(() => {
@@ -1344,7 +1388,8 @@ function loadRecent(item) {
 function saveRecentQuestion(q, a) {
   let recent = JSON.parse(localStorage.getItem('amRecent') || '[]');
   recent = recent.map(r => typeof r === 'string' ? { q: r, a: '' } : r);
-  recent = [{ q, a, savedAt: Date.now() }, ...recent.filter(r => r.q !== q)].slice(0, 3);
+  const c = Array.isArray(window._lastCitations) ? window._lastCitations : [];
+  recent = [{ q, a, savedAt: Date.now(), c }, ...recent.filter(r => r.q !== q)].slice(0, 3);
   localStorage.setItem('amRecent', JSON.stringify(recent));
   renderRecentQuestions();
 }
@@ -1403,6 +1448,48 @@ const REACTIONS = {
     { id: 'dharan',   emoji: '🙌', label: 'ધારણ કરીશ', confirm: 'મહારાજ તમને બળ આપે 🙏' },
   ]
 };
+
+const SECTION_IMAGES = {
+  'GADHADA I':   '/images/gadhada.jpg',
+  'GADHADA II':  '/images/gadhada.jpg',
+  'GADHADA III': '/images/gadhada.jpg',
+  'SARANGPUR':   '/images/sarangpur.jpg',
+  'KARIYANI':    '/images/kariyani.jpg',
+  'LOYA':        '/images/loya.jpg',
+  'PANCHALA':    '/images/panchala.jpg',
+  'VADTAL':      '/images/vadtal.jpg',
+  'AMDAVAD':     '/images/vadtal.jpg',
+  'JETALPUR':    '/images/jetalpur.jpg',
+};
+
+const TOPIC_IMAGES = [
+  { keywords: ['anger', 'ક્રોધ', 'krodh'],                 url: '/images/loya.jpg' },
+  { keywords: ['maya', 'માયા', 'illusion'],                url: '/images/gadhada.jpg' },
+  { keywords: ['satsang', 'સત્સંગ', 'sabha', 'assembly'], url: '/images/vadtal.jpg' },
+  { keywords: ['bhakti', 'ભક્તિ', 'devotion', 'puja'],    url: '/images/sarangpur.jpg' },
+  { keywords: ['ekadashi', 'એકાદશી', 'fasting'],          url: '/images/panchala.jpg' },
+  { keywords: ['mind', 'મન', 'peace', 'શાંતિ', 'stress'], url: '/images/loya.jpg' },
+  { keywords: ['faith', 'શ્રદ્ધા', 'trust', 'nischay'],   url: '/images/kariyani.jpg' },
+  { keywords: ['vairagya', 'વૈરાગ્ય', 'detachment'],      url: '/images/panchala.jpg' },
+  { keywords: ['kusang', 'કુસંગ', 'company'],              url: '/images/kariyani.jpg' },
+  { keywords: ['akshar', 'અક્ષર', 'brahm', 'akshardham'], url: '/images/gadhada.jpg' },
+];
+
+function getAnswerImage(question, citations) {
+  const q = (question || '').toLowerCase();
+  for (const t of TOPIC_IMAGES) {
+    if (t.keywords.some(k => q.includes(k.toLowerCase()))) {
+      return t.url;
+    }
+  }
+  if (citations && citations.length > 0) {
+    const section = citations[0].section;
+    if (section && SECTION_IMAGES[section]) {
+      return SECTION_IMAGES[section];
+    }
+  }
+  return null;
+}
 
 const REACTION_HEADING = {
   en: 'Hriday Sparsh',
