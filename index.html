@@ -183,7 +183,7 @@ tailwind.config = {
     border: 1px solid rgba(232,131,42,.22);
     border-radius: 999px;
     padding: 8px 14px;
-    font-size: 13px;
+    font-size: 12px;
     color: #e8dcc8;
     cursor: pointer;
     transition: all .18s ease;
@@ -235,9 +235,15 @@ tailwind.config = {
   }
   .explore-deeper-chevron {
     display: inline-block;
-    font-size: 10px;
-    opacity: 0.75;
-    transition: transform .22s ease;
+    font-size: 11px;
+    line-height: 1;
+    color: rgba(245, 166, 35, 0.92);
+    text-shadow: 0 0 12px rgba(232, 131, 42, 0.45);
+    transition: transform .22s ease, color .18s ease, text-shadow .18s ease;
+  }
+  .explore-deeper-toggle:hover .explore-deeper-chevron {
+    color: #f5bf4a;
+    text-shadow: 0 0 14px rgba(245, 166, 35, 0.55);
   }
   .explore-deeper-panel { margin-top: 0; }
   .explore-deep-btn {
@@ -389,7 +395,7 @@ tailwind.config = {
     border-radius: 999px;
     border: 1px solid rgba(232,131,42,.28);
     background: rgba(232,131,42,.06);
-    color: rgba(232,220,200,.82);
+    color: rgba(232,220,200,.85);
     font-family: 'Noto Serif Gujarati', 'Crimson Pro', serif;
     font-size: 13px;
     cursor: pointer;
@@ -505,10 +511,10 @@ tailwind.config = {
     line-height: 1.58;
     color: rgba(255,255,255,0.88);
     margin: 0 0 8px;
-    padding: 0 2px;
+    padding: 0 4px 0 2px;
     border: none;
     font-style: italic;
-    text-align: center;
+    text-align: start;
   }
   #dailyBanner.daily-lang-gu .daily-text.daily-text--scripture {
     font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
@@ -835,7 +841,7 @@ tailwind.config = {
 <!-- Desktop-only note — hidden on ≤520px -->
 <p class="desktop-mobile-footnote relative z-10 pointer-events-none"
    id="desktopHint" style="display:none" role="note">
-  Best experienced on mobile
+  📱 Best experienced on mobile
 </p>
 <script>
   (function() {
