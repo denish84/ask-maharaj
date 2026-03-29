@@ -61,6 +61,31 @@ const FOOTNOTE_RE = /\b\d+\.\d+\s*/gu;
 /** Hyphenated word split across line break: Gangã- water → Gangã-water */
 const HYPHEN_BREAK_RE = /([\p{L}\p{M}\p{N}]+)-\s+([\p{L}\p{M}\p{N}]+)/gu;
 
+/**
+ * PDF/footer glue: tail of one discourse + "|| End of Vachanãmrut …" + next discourse header.
+ * Drop from the marker onward (any spelling between Vachan…mrut).
+ */
+const END_OF_VACH_RE =
+  /(?:\s*\|\|\s*)?End\s+of\s+Vachan.*?mrut\b[\s\S]*/iu;
+
+/** If a chunk concatenated two English openers, keep only the first discourse */
+function truncateBeforeSecondSamvat(str) {
+  const re = /\bIn the Samvat year\b/gi;
+  const indices = [];
+  let m;
+  while ((m = re.exec(str)) !== null) {
+    indices.push(m.index);
+    if (indices.length >= 2) break;
+  }
+  if (indices.length < 2) return str;
+  const second = indices[1];
+  if (second < 400) return str;
+  return str.slice(0, second).trim();
+}
+
+/** `Bhagvãn .` → `Bhagvãn.` (common PDF spacing before closing punctuation) */
+const SPACE_BEFORE_SENTENCE_END_RE = /(?<=[\p{L}\p{M}\p{N}])\s+([.!?])(?=\s|$|[\u201d")])/gu;
+
 /** Max chars considered when choosing a sentence boundary for the excerpt */
 const EXCERPT_MAX = 1100;
 /** If the only `.`/`!`/`?` in the head is before this index (e.g. after “greatness.”), scan further — many teachings use `;` between clauses and only end with `.` later */
@@ -81,9 +106,10 @@ function cleanContent(original) {
   let s = String(original ?? '');
 
   s = s.replace(/\u00ad/g, '');
+  s = s.replace(END_OF_VACH_RE, '').trim();
 
   const samvatMatch = s.match(/\bIn the Samvat year\b/i);
-  if (samvatMatch?.index > 0 && samvatMatch.index < 600) {
+  if (samvatMatch?.index > 0 && samvatMatch.index < 2200) {
     s = s.slice(samvatMatch.index).trim();
   } else {
     s = s.replace(LEADING_HEADER_RE, '').trim();
@@ -95,6 +121,8 @@ function cleanContent(original) {
   s = s.replace(HYPHEN_BREAK_RE, '$1-$2');
   s = s.replace(LEADING_ORPHAN_PUNCT_RE, '').trim();
   s = s.replace(/\s+/g, ' ');
+  s = truncateBeforeSecondSamvat(s);
+  s = s.replace(SPACE_BEFORE_SENTENCE_END_RE, '$1');
 
   const head = s.slice(0, EXCERPT_MAX);
   let lastEnd = lastSentenceEnd(head);

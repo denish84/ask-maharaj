@@ -84,15 +84,16 @@ const TEACHING_CONTENT_OR = TEACHING_PHRASES.map(
  * Must run on the builder returned by `.select()` — `from()` alone has no `.not()` / `.lt()`.
  * - page_start < 797: drop glossary band (~797–870).
  * - content_clean not ilike '. %': drop fragments starting with mid-sentence punctuation.
- * Note: We intentionally avoid broader preamble exclusions (e.g., '%Samvat year%') to prevent
- * removing valid discourse openings.
+ * - Drop obvious PDF glue / multi-discourse junk still present in some rows.
  */
 function applyDailyChunkFilters(selectBuilder) {
   return selectBuilder
     .not('vachanamrut_number', 'is', null)
     .not('content_clean', 'is', null)
     .lt('page_start', 797)
-    .not('content_clean', 'ilike', '. %');
+    .not('content_clean', 'ilike', '. %')
+    .not('content_clean', 'ilike', '%||%')
+    .not('content_clean', 'ilike', '%End of Vachan%');
 }
 
 function wantsShuffle(req) {
