@@ -1,5 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Deterministic “daily wisdom” for the home banner. Picks one chunk per calendar day (IST).
+ * Response `content` is `content_clean`: header-stripped, normalized, and excerpted in
+ * `scripts/cleanChunks.js` so the UI gets a bounded, sentence-shaped quote (not full `content`).
+ */
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -163,6 +168,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Could not fetch daily teaching' });
   }
 
+  // Display excerpt only — see scripts/cleanChunks.js (full discourse stays in `content` on the row).
   const content = (data.content_clean || '').trim();
 
   if (!content) {

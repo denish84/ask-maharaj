@@ -1,3 +1,10 @@
+/**
+ * Batch-writes `content_clean` on `chunks`: strips PDF noise (headers, section markers, etc.),
+ * then builds a readable excerpt capped near EXCERPT_MAX and trimmed to a sentence end when possible.
+ * Used by the site’s daily banner (`api/daily.js`) and anywhere else that prefers a short quote.
+ *
+ * Run: `node scripts/cleanChunks.js` (use `--dry-run` to sample without updating).
+ */
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
@@ -54,6 +61,22 @@ const FOOTNOTE_RE = /\b\d+\.\d+\s*/gu;
 /** Hyphenated word split across line break: Gangã- water → Gangã-water */
 const HYPHEN_BREAK_RE = /([\p{L}\p{M}\p{N}]+)-\s+([\p{L}\p{M}\p{N}]+)/gu;
 
+/** Max chars considered when choosing a sentence boundary for the excerpt */
+const EXCERPT_MAX = 1100;
+/** If the only `.`/`!`/`?` in the head is before this index (e.g. after “greatness.”), scan further — many teachings use `;` between clauses and only end with `.` later */
+const LEAD_IN_IGNORE = 200;
+/** When no suitable sentence end exists, trim to this length at a word boundary */
+const HARD_FALLBACK = 900;
+
+function lastSentenceEnd(str) {
+  return Math.max(
+    str.lastIndexOf('.'),
+    str.lastIndexOf('!'),
+    str.lastIndexOf('?')
+  );
+}
+
+/** Produce excerpt for UI; returns null if result is too short (see MIN_CLEAN_LEN). */
 function cleanContent(original) {
   let s = String(original ?? '');
 
@@ -73,16 +96,23 @@ function cleanContent(original) {
   s = s.replace(LEADING_ORPHAN_PUNCT_RE, '').trim();
   s = s.replace(/\s+/g, ' ');
 
-  let result = s.slice(0, 500);
-  const lastEnd = Math.max(
-    result.lastIndexOf('.'),
-    result.lastIndexOf('!'),
-    result.lastIndexOf('?')
-  );
-  if (lastEnd > 100) {
-    result = result.slice(0, lastEnd + 1);
+  const head = s.slice(0, EXCERPT_MAX);
+  let lastEnd = lastSentenceEnd(head);
+
+  if (lastEnd < LEAD_IN_IGNORE) {
+    const tail = s.slice(LEAD_IN_IGNORE, EXCERPT_MAX);
+    const rel = lastSentenceEnd(tail);
+    if (rel >= 0) {
+      lastEnd = LEAD_IN_IGNORE + rel;
+    }
+  }
+
+  let result;
+  if (lastEnd >= LEAD_IN_IGNORE) {
+    result = s.slice(0, lastEnd + 1).trim();
   } else {
-    result = result.slice(0, 400).replace(/\s+\S+$/, '') + '…';
+    result =
+      s.slice(0, HARD_FALLBACK).replace(/\s+\S+$/, '') + '…';
   }
 
   const finalized = result.trim();
