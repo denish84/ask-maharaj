@@ -885,7 +885,6 @@ function isDailyShuffleMode() {
 function dailyBodyForLang(d, lang) {
   if (!d) return '';
   if (
-    d.curated &&
     lang === 'gu' &&
     d.quote_text_gu &&
     String(d.quote_text_gu).trim()
@@ -911,7 +910,7 @@ function updateDailyTitle(lang) {
     return;
   }
   const p = window._lastDailyPayload;
-  if (p && p.curated) {
+  if (p) {
     if (lang === 'gu' && p.theme_title_gu && String(p.theme_title_gu).trim()) {
       dailyTitle.textContent = String(p.theme_title_gu).trim();
       return;
@@ -930,10 +929,7 @@ function updateDailyLangNote(lang) {
   if (!note) return;
   const p = window._lastDailyPayload;
   const guCurated =
-    p &&
-    p.curated &&
-    p.quote_text_gu &&
-    String(p.quote_text_gu).trim();
+    p && p.quote_text_gu && String(p.quote_text_gu).trim();
   if (lang === 'gu' && !guCurated) {
     note.classList.add('daily-lang-note--visible');
     note.removeAttribute('aria-hidden');

@@ -31,7 +31,7 @@ async function main() {
     console.error(
       'Missing file:',
       JSON_PATH,
-      '\nCopy data/daily-quotes.example.json to data/daily-quotes.json and add your quotes.'
+      '\nCopy data/daily-quotes.example.json → data/daily-quotes.json (or pass a path). Table: supabase/daily_quotes.sql'
     );
     process.exit(1);
   }

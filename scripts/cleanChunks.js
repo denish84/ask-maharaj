@@ -1,7 +1,7 @@
 /**
  * Batch-writes `content_clean` on `chunks`: strips PDF noise (headers, section markers, etc.),
  * then builds a readable excerpt capped near EXCERPT_MAX and trimmed to a sentence end when possible.
- * Used by the site’s daily banner (`api/daily.js`) and anywhere else that prefers a short quote.
+ * Supports RAG / Ask (`api/ask.js` via `match_chunks`); daily cards use `daily_quotes` only.
  *
  * Run: `node scripts/cleanChunks.js` (use `--dry-run` to sample without updating).
  */

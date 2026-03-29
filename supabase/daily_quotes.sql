@@ -1,5 +1,6 @@
 -- Run once in Supabase → SQL Editor.
--- Manually curated daily teachings (100 rows). api/daily.js reads this first; falls back to chunks if empty.
+-- Seed data: copy data/daily-quotes.example.json → data/daily-quotes.json, then npm run import-daily-quotes
+-- api/daily.js reads only this table (no chunks fallback).
 
 create table if not exists public.daily_quotes (
   id uuid primary key default gen_random_uuid(),
