@@ -4,7 +4,9 @@
   "description": "Local scripts for Vachanamrut PDF tooling",
   "type": "module",
   "scripts": {
-    "ingest": "node scripts/ingest-pdf.js"
+    "ingest": "node scripts/ingest-pdf.js",
+    "import-daily-quotes": "node scripts/import-daily-quotes.js",
+    "copy-daily-quotes": "node scripts/copy-daily-quotes.js"
   },
   "dependencies": {
     "@langchain/textsplitters": "^1.0.1",

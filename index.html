@@ -882,6 +882,26 @@ function isDailyShuffleMode() {
   }
 }
 
+function dailyBodyForLang(d, lang) {
+  if (!d) return '';
+  if (
+    d.curated &&
+    lang === 'gu' &&
+    d.quote_text_gu &&
+    String(d.quote_text_gu).trim()
+  ) {
+    return String(d.quote_text_gu).trim();
+  }
+  return String(d.content || '').trim();
+}
+
+function applyLoadedDailyText(lang) {
+  const p = window._lastDailyPayload;
+  const el = document.getElementById('dailyText');
+  if (!el || !p || !p.content) return;
+  el.textContent = dailyBodyForLang(p, lang);
+}
+
 function updateDailyTitle(lang) {
   const dailyTitle = document.getElementById('dailyTitle');
   if (!dailyTitle) return;
@@ -890,6 +910,17 @@ function updateDailyTitle(lang) {
       lang === 'gu' ? 'ચકાસણી · દર refresh નવું' : 'Test · random each refresh';
     return;
   }
+  const p = window._lastDailyPayload;
+  if (p && p.curated) {
+    if (lang === 'gu' && p.theme_title_gu && String(p.theme_title_gu).trim()) {
+      dailyTitle.textContent = String(p.theme_title_gu).trim();
+      return;
+    }
+    if (p.theme_title && String(p.theme_title).trim()) {
+      dailyTitle.textContent = String(p.theme_title).trim();
+      return;
+    }
+  }
   dailyTitle.textContent =
     lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut';
 }
@@ -897,7 +928,13 @@ function updateDailyTitle(lang) {
 function updateDailyLangNote(lang) {
   const note = document.getElementById('dailyLangNote');
   if (!note) return;
-  if (lang === 'gu') {
+  const p = window._lastDailyPayload;
+  const guCurated =
+    p &&
+    p.curated &&
+    p.quote_text_gu &&
+    String(p.quote_text_gu).trim();
+  if (lang === 'gu' && !guCurated) {
     note.classList.add('daily-lang-note--visible');
     note.removeAttribute('aria-hidden');
   } else {
@@ -977,6 +1014,7 @@ function setLang(lang) {
   document.getElementById('langGu').classList.toggle('lang-active', lang === 'gu');
 
   syncDailyBannerChrome(lang);
+  applyLoadedDailyText(lang);
 }
 
 function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0,120); }
@@ -1462,16 +1500,18 @@ function escDailyHtml(s) {
 function renderDailyPills(d) {
   const el = document.getElementById('dailyPills');
   if (!el || !d) return;
+  const cite = d.citation ? String(d.citation).trim() : '';
   const vach = d.vachanamrut_number ? String(d.vachanamrut_number).trim() : '';
-  if (!vach) {
-    el.innerHTML = '';
-    return;
-  }
   const pagePart =
     d.page_start != null && d.page_start !== ''
       ? ` · p. ${d.page_start}`
       : '';
-  const line = `${vach}${pagePart}`;
+  let line = cite || vach;
+  if (!line) {
+    el.innerHTML = '';
+    return;
+  }
+  line = `${line}${pagePart}`;
   el.innerHTML = `<span class="daily-pill daily-pill--citation">${escDailyHtml(line)}</span>`;
 }
 
@@ -1506,12 +1546,13 @@ function shareDailyWisdom() {
   const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
   const head = s.dailyShareHead || '*Daily Wisdom from Ask Maharaj*';
   const readMore = s.dailyShareReadMore || '✨ Read more:';
+  const citeStr = p.citation ? String(p.citation).trim() : '';
   const vachStr = p.vachanamrut_number ? String(p.vachanamrut_number).trim() : '';
   const pageStr =
     p.page_start != null && p.page_start !== '' ? ` · p. ${p.page_start}` : '';
-  const refLine = vachStr ? `${vachStr}${pageStr}` : '';
+  const refLine = citeStr || vachStr ? `${citeStr || vachStr}${pageStr}` : '';
   const dashLine = refLine ? `— ${refLine}` : '';
-  const body = String(p.content).replace(/"/g, "'");
+  const body = dailyBodyForLang(p, lang).replace(/"/g, "'");
   const t =
     head +
     '\n\n"' +
@@ -1535,10 +1576,10 @@ async function loadDailyTeaching() {
     if (!d.content) return;
 
     window._lastDailyPayload = d;
-    document.getElementById('dailyText').textContent = d.content;
+    const lang = localStorage.getItem('amLang') || 'en';
+    document.getElementById('dailyText').textContent = dailyBodyForLang(d, lang);
     renderDailyPills(d);
 
-    const lang = localStorage.getItem('amLang') || 'en';
     syncDailyBannerChrome(lang);
 
     const banner = document.getElementById('dailyBanner');

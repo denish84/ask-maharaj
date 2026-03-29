@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * “Daily wisdom” for the home banner. Default: one chunk per calendar day (IST), cached at the edge.
- * QA: `GET /api/daily?shuffle=1` picks a random eligible row each request and sends no-store (no cache).
- * Response `content` is `content_clean` — see `scripts/cleanChunks.js`.
+ * Daily wisdom for the home banner (IST date seed).
+ * 1) If `daily_quotes` has rows → manual curated quotes (`data/daily-quotes.json` + import script).
+ * 2) Else → `chunks.content_clean` — see `scripts/cleanChunks.js`.
+ * QA: `GET /api/daily?shuffle=1` randomizes within whichever source is active.
  */
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -106,6 +107,56 @@ function wantsShuffle(req) {
   return params.get('shuffle') === '1' || params.get('shuffle') === 'true';
 }
 
+/** Manual quotes table — see supabase/daily_quotes.sql */
+async function tryCuratedDaily(seed, shuffle, today) {
+  const { count, error: countErr } = await supabase
+    .from('daily_quotes')
+    .select('*', { count: 'exact', head: true });
+
+  if (countErr || count == null || count === 0) {
+    return null;
+  }
+
+  const total = count;
+  const offset = shuffle
+    ? Math.floor(Math.random() * total)
+    : seed % total;
+
+  const { data, error } = await supabase
+    .from('daily_quotes')
+    .select(
+      'quote_text, quote_text_gu, theme_title, theme_title_gu, citation, vachanamrut_number, page_start'
+    )
+    .order('sort_order', { ascending: true })
+    .range(offset, offset)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const content = (data.quote_text || '').trim();
+  if (!content) {
+    return null;
+  }
+
+  const quote_text_gu = (data.quote_text_gu || '').trim() || null;
+
+  return {
+    content,
+    quote_text_gu,
+    theme_title: data.theme_title?.trim() || null,
+    theme_title_gu: data.theme_title_gu?.trim() || null,
+    citation: data.citation?.trim() || null,
+    vachanamrut_number: data.vachanamrut_number ?? null,
+    page_start: data.page_start ?? null,
+    section: null,
+    date: today,
+    curated: true,
+    ...(shuffle ? { shuffle: true } : {})
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin || '';
@@ -148,6 +199,11 @@ export default async function handler(req, res) {
   const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
   const today = ist.toISOString().slice(0, 10);
   const seed = today.split('-').reduce((a, b) => a + parseInt(b, 10), 0);
+
+  const curated = await tryCuratedDaily(seed, shuffle, today);
+  if (curated) {
+    return res.status(200).json(curated);
+  }
 
   let teachingOnly = true;
   const teachingCountQuery = applyDailyChunkFilters(
@@ -201,6 +257,7 @@ export default async function handler(req, res) {
     vachanamrut_number: data.vachanamrut_number,
     page_start: data.page_start,
     date: today,
+    curated: false,
     ...(shuffle ? { shuffle: true } : {})
   });
 }
