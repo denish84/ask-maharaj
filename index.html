@@ -81,6 +81,44 @@ tailwind.config = {
     from { opacity: 0; transform: translateY(14px) scaleY(.82); transform-origin: top; }
     to   { opacity: 1; transform: translateY(0)    scaleY(1);    transform-origin: top; }
   }
+  @keyframes scrollClose {
+    from { opacity: 1; transform: translateY(0) scaleY(1); transform-origin: top; }
+    to   { opacity: 0; transform: translateY(14px) scaleY(.82); transform-origin: top; }
+  }
+  #foldBtn {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 14px 0 4px;
+    text-align: center;
+    font-size: 15px;
+    color: rgba(232,131,42,.32);
+    letter-spacing: 0.5em;
+    line-height: 1;
+    transition: color .25s ease, letter-spacing .25s ease, filter .25s ease;
+    font-family: Georgia, serif;
+  }
+  #foldBtn:hover {
+    color: rgba(245,166,35,.85);
+    letter-spacing: 0.7em;
+    filter: drop-shadow(0 0 6px rgba(232,131,42,.55));
+  }
+  #foldBtn:active { transform: scale(.96); }
+  #foldBtn .fold-hint {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(232,131,42,.28);
+    margin-top: 4px;
+    font-family: 'Crimson Pro', serif;
+    transition: color .25s ease;
+  }
+  #foldBtn:hover .fold-hint {
+    color: rgba(245,166,35,.55);
+  }
   /* ── Show / hide helpers (JS toggles .show) ── */
   #ansCard       { display: none; }
   #ansCard.show  { display: block; animation: scrollOpen .65s cubic-bezier(.34,1.56,.64,1) both; }
@@ -716,8 +754,10 @@ tailwind.config = {
         <span class="absolute left-1/2 -translate-x-1/2 top-1.5 leading-none"
               aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);z-index:0">❧</span>
         <div id="ansText" class="answer-text"></div>
-        <span class="absolute left-1/2 bottom-2 leading-none"
-              aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);transform:translateX(-50%) scaleX(-1);display:block;z-index:0">❧</span>
+        <button id="foldBtn" type="button" aria-label="Fold back answer" onclick="foldAns()">
+          <span aria-hidden="true">❧</span>
+          <span class="fold-hint">fold back</span>
+        </button>
   </div>
 
       <div id="reactionWrap" style="display:none;margin-top:1.25rem">
@@ -1332,7 +1372,7 @@ function showAns(text, cached, coins) {
       imgEl.onload = () => imgEl.classList.add('loaded');
       if (imgEl.complete && imgEl.naturalWidth) imgEl.classList.add('loaded');
       if (capEl) {
-        capEl.textContent = '📍 ' + result.caption;
+        capEl.textContent = result.noPin ? result.caption : '📍 ' + result.caption;
         capEl.style.display = 'block';
       }
     } else {
@@ -1376,6 +1416,17 @@ function showAns(text, cached, coins) {
   const c = document.getElementById('ansCard');
   c.classList.add('show');
   setTimeout(() => c.scrollIntoView({ behavior: 'smooth', block: 'start' }), 680);
+}
+
+function foldAns() {
+  const card = document.getElementById('ansCard');
+  card.style.animation = 'scrollClose .45s cubic-bezier(.4,0,.6,1) both';
+  setTimeout(() => {
+    card.classList.remove('show');
+    card.style.animation = '';
+    hideReactions();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 420);
 }
 
 function hideAns() {
@@ -1507,7 +1558,9 @@ const SECTION_IMAGES = {
 /** When the question matches no topic keywords and citations have no known place — e.g. off-topic questions. */
 const DEFAULT_ANSWER_IMAGE = {
   url: '/images/vachanamrut.png',
-  caption: 'Vachanamrut',
+  caption: '📖 Vachanamrut — Nectar of Divine Speech',
+  /** Full caption line; do not prepend 📍 (not a place). */
+  noPin: true,
 };
 
 const TOPIC_IMAGES = [
