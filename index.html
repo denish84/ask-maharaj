@@ -94,7 +94,7 @@ tailwind.config = {
     padding: 14px 0 4px;
     text-align: center;
     font-size: 15px;
-    color: rgba(232,131,42,.75);
+    color: rgba(232,131,42,.32);
     letter-spacing: 0.5em;
     line-height: 1;
     transition: color .25s ease, letter-spacing .25s ease, filter .25s ease;
@@ -111,7 +111,7 @@ tailwind.config = {
     font-size: 9px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(232,131,42,.65);
+    color: rgba(232,131,42,.28);
     margin-top: 4px;
     font-family: 'Crimson Pro', serif;
     transition: color .25s ease;
@@ -1425,6 +1425,7 @@ function foldAns() {
     card.classList.remove('show');
     card.style.animation = '';
     hideReactions();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, 420);
 }
 
