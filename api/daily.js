@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Deterministic “daily wisdom” for the home banner. Picks one chunk per calendar day (IST).
- * Response `content` is `content_clean`: header-stripped, normalized, and excerpted in
- * `scripts/cleanChunks.js` so the UI gets a bounded, sentence-shaped quote (not full `content`).
+ * “Daily wisdom” for the home banner. Default: one chunk per calendar day (IST), cached at the edge.
+ * QA: `GET /api/daily?shuffle=1` picks a random eligible row each request and sends no-store (no cache).
+ * Response `content` is `content_clean` — see `scripts/cleanChunks.js`.
  */
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -95,6 +95,16 @@ function applyDailyChunkFilters(selectBuilder) {
     .not('content_clean', 'ilike', '. %');
 }
 
+function wantsShuffle(req) {
+  const q = req.query;
+  if (q && (q.shuffle === '1' || q.shuffle === 'true')) return true;
+  const raw = req.url || '';
+  const i = raw.indexOf('?');
+  if (i === -1) return false;
+  const params = new URLSearchParams(raw.slice(i).split('#')[0]);
+  return params.get('shuffle') === '1' || params.get('shuffle') === 'true';
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin || '';
@@ -120,12 +130,19 @@ export default async function handler(req, res) {
   }
   if (origin) setCorsHeaders(res, origin);
 
-  res.setHeader(
-    'Cache-Control',
-    's-maxage=86400, stale-while-revalidate=3600'
-  );
+  const shuffle = wantsShuffle(req);
+  if (shuffle) {
+    res.setHeader(
+      'Cache-Control',
+      'private, no-store, no-cache, must-revalidate'
+    );
+  } else {
+    res.setHeader(
+      'Cache-Control',
+      's-maxage=86400, stale-while-revalidate=3600'
+    );
+  }
 
-  // Deterministic seed from today's date (IST) — same chunk all day for all users
   const now = new Date();
   const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
   const today = ist.toISOString().slice(0, 10);
@@ -151,7 +168,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Could not fetch daily teaching' });
   }
 
-  const offset = seed % total;
+  const offset = shuffle
+    ? Math.floor(Math.random() * total)
+    : seed % total;
 
   let rowQuery = applyDailyChunkFilters(
     supabase
@@ -180,6 +199,7 @@ export default async function handler(req, res) {
     section: data.section,
     vachanamrut_number: data.vachanamrut_number,
     page_start: data.page_start,
-    date: today
+    date: today,
+    ...(shuffle ? { shuffle: true } : {})
   });
 }

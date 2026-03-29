@@ -396,6 +396,10 @@ tailwind.config = {
     text-align: center;
     font-weight: 600;
   }
+  /* QA: ?dailyShuffle=1 — random passage each refresh */
+  #dailyBanner.daily-shuffle-mode .daily-eyebrow {
+    color: rgba(160, 210, 255, 0.85);
+  }
   .daily-text.daily-text--scripture {
     font-family: Georgia, 'Times New Roman', 'Noto Serif Gujarati', serif;
     font-size: 15px;
@@ -861,12 +865,33 @@ const LANG_STRINGS = {
   }
 };
 
+/** Call on load: `?dailyShuffle=1` enables random daily card each refresh (session). `?dailyShuffle=0` turns off. */
+function syncDailyShuffleFromUrl() {
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('dailyShuffle') === '1') sessionStorage.setItem('amDailyShuffle', '1');
+    else if (sp.get('dailyShuffle') === '0') sessionStorage.removeItem('amDailyShuffle');
+  } catch (e) {}
+}
+
+function isDailyShuffleMode() {
+  try {
+    return sessionStorage.getItem('amDailyShuffle') === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
 function updateDailyTitle(lang) {
   const dailyTitle = document.getElementById('dailyTitle');
-  if (dailyTitle) {
+  if (!dailyTitle) return;
+  if (isDailyShuffleMode()) {
     dailyTitle.textContent =
-      lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut';
+      lang === 'gu' ? 'ચકાસણી · દર refresh નવું' : 'Test · random each refresh';
+    return;
   }
+  dailyTitle.textContent =
+    lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut';
 }
 
 function updateDailyLangNote(lang) {
@@ -1470,6 +1495,7 @@ function syncDailyBannerChrome(lang) {
   if (banner) {
     banner.classList.toggle('daily-lang-gu', lang === 'gu');
     banner.classList.toggle('daily-lang-en', lang === 'en');
+    banner.classList.toggle('daily-shuffle-mode', isDailyShuffleMode());
   }
 }
 
@@ -1500,7 +1526,10 @@ function shareDailyWisdom() {
 
 async function loadDailyTeaching() {
   try {
-    const res = await fetch('/api/daily');
+    syncDailyShuffleFromUrl();
+    const shuffle = isDailyShuffleMode();
+    const apiPath = shuffle ? '/api/daily?shuffle=1' : '/api/daily';
+    const res = await fetch(apiPath, shuffle ? { cache: 'no-store' } : undefined);
     if (!res.ok) return;
     const d = await res.json();
     if (!d.content) return;
