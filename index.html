@@ -95,8 +95,29 @@ tailwind.config = {
     display: none;
     opacity: 0;
     transition: opacity 0.6s ease;
-    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+    /* Long feather into the card: solid top ~⅓, soft blend over ~⅔ (avoids a hard “cut”) */
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 32%,
+      rgba(0, 0, 0, 0.92) 48%,
+      rgba(0, 0, 0, 0.55) 68%,
+      rgba(0, 0, 0, 0.18) 86%,
+      transparent 100%
+    );
+    -webkit-mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 32%,
+      rgba(0, 0, 0, 0.92) 48%,
+      rgba(0, 0, 0, 0.55) 68%,
+      rgba(0, 0, 0, 0.18) 86%,
+      transparent 100%
+    );
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
   }
   #answerImage.loaded {
     opacity: 1;
