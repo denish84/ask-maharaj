@@ -74,6 +74,21 @@ const TEACHING_CONTENT_OR = TEACHING_PHRASES.map(
   p => `content.ilike.%${p}%`
 ).join(',');
 
+/**
+ * Applies shared filters for daily chunk selection (count + fetch).
+ * - page_start < 797: drop glossary band (~797–870).
+ * - content_clean not ilike '. %': drop fragments starting with mid-sentence punctuation.
+ * Note: We intentionally avoid broader preamble exclusions (e.g., '%Samvat year%') to prevent
+ * removing valid discourse openings.
+ */
+function applyDailyChunkFilters(query) {
+  return query
+    .not('vachanamrut_number', 'is', null)
+    .not('content_clean', 'is', null)
+    .lt('page_start', 797)
+    .not('content_clean', 'ilike', '. %');
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin || '';
@@ -111,21 +126,17 @@ export default async function handler(req, res) {
   const seed = today.split('-').reduce((a, b) => a + parseInt(b, 10), 0);
 
   let teachingOnly = true;
-  let { count } = await supabase
-    .from('chunks')
+  let teachingCountQuery = applyDailyChunkFilters(supabase.from('chunks'))
     .select('*', { count: 'exact', head: true })
-    .not('vachanamrut_number', 'is', null)
-    .not('content_clean', 'is', null)
     .or(TEACHING_CONTENT_OR);
+  let { count } = await teachingCountQuery;
 
   let total = count ?? 0;
   if (total === 0) {
     teachingOnly = false;
-    const fallback = await supabase
-      .from('chunks')
-      .select('*', { count: 'exact', head: true })
-      .not('vachanamrut_number', 'is', null)
-      .not('content_clean', 'is', null);
+    const fallbackQuery = applyDailyChunkFilters(supabase.from('chunks'))
+      .select('*', { count: 'exact', head: true });
+    const fallback = await fallbackQuery;
     total = fallback.count ?? 0;
   }
 
@@ -135,11 +146,8 @@ export default async function handler(req, res) {
 
   const offset = seed % total;
 
-  let rowQuery = supabase
-    .from('chunks')
-    .select('content_clean, section, vachanamrut_number, page_start')
-    .not('vachanamrut_number', 'is', null)
-    .not('content_clean', 'is', null);
+  let rowQuery = applyDailyChunkFilters(supabase.from('chunks'))
+    .select('content_clean, section, vachanamrut_number, page_start');
   if (teachingOnly) rowQuery = rowQuery.or(TEACHING_CONTENT_OR);
   const { data, error } = await rowQuery
     .order('id', { ascending: true })

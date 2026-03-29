@@ -23,11 +23,30 @@ const supabase = createClient(
 );
 
 /**
- * Leading discourse header, including optional title after the number, e.g.
- * Gadhadã I – 71 Bhagvãn Incarnates… (same line or before a newline).
+ * Just the loud page/header prefix, e.g.
+ * GADHADÃ I - 182 -
+ * KÃRIYÃNI - 297 -
+ * LOYÃ - 310 -
+ *
+ * Important: this intentionally stops at the trailing separator so it does NOT
+ * swallow real content like "veranda outside the north-facing rooms..."
  */
 const LEADING_HEADER_RE =
-  /^\s*[\p{L}\p{M}\s,']+?\s*[IVXivx]*\s*[-–]\s*\d+\s*[-–]?\s*[\p{L}\p{M}\s,']*\n?/u;
+  /^\s*[\p{Lu}\p{M}]+(?:\s+[\p{Lu}\p{M}]+)*(?:\s+[IVXivx]+)?\s*[-–]\s*\d+\s*[-–]\s*/u;
+
+/**
+ * A discourse-title block left after the page header, only when it is clearly
+ * followed by a section marker or the "In the Samvat year" opener, e.g.
+ * Gadhadã I – 71 Bhagvãn Incarnates With His Akshardhãm 71.1 ...
+ */
+const LEADING_TITLE_RE =
+  /^\s*[\p{L}\p{M}\s,'\u2019]+?\s*[–-]\s*\d+\s+[\p{L}\p{M}\s,'\u2019]+(?=\s+\d+\.\d+\s|\s+In the Samvat year\b)/u;
+
+/** Leading section marker such as "71.1 ", "10.8 ", or leftover "– 71 " */
+const LEADING_SECTION_RE = /^\s*(?:[–—-]\s*)?\d{1,3}(?:\.\d+)?\s+/u;
+
+/** Orphan leading punctuation left after stripping */
+const LEADING_ORPHAN_PUNCT_RE = /^\s*[.:-–—]+\s+/u;
 
 /** Footnote-style refs like 35.7 */
 const FOOTNOTE_RE = /\b\d+\.\d+\s*/gu;
@@ -35,54 +54,45 @@ const FOOTNOTE_RE = /\b\d+\.\d+\s*/gu;
 /** Hyphenated word split across line break: Gangã- water → Gangã-water */
 const HYPHEN_BREAK_RE = /([\p{L}\p{M}\p{N}]+)-\s+([\p{L}\p{M}\p{N}]+)/gu;
 
-/** If text opens with lowercase, jump to first capital after a sentence-ending period. */
-function trimMidSentenceAfterPeriod(s) {
-  const t = s.trim();
-  if (!t.length) return t;
-  if (!/^\p{Ll}/u.test(t)) return t;
-  for (let i = 0; i < t.length; i++) {
-    if (t[i] !== '.') continue;
-    let j = i + 1;
-    while (j < t.length && /\s/.test(t[j])) j++;
-    const rest = t.slice(j);
-    if (rest.length && /^\p{Lu}/u.test(rest)) return rest.trim();
-  }
-  return t;
-}
-
-function capitalizeFirstLetter(s) {
-  if (!s) return s;
-  for (let i = 0; i < s.length; ) {
-    const cp = s.codePointAt(i);
-    const ch = String.fromCodePoint(cp);
-    const w = ch.length === 2 ? 2 : 1;
-    if (/\p{L}/u.test(ch)) {
-      return s.slice(0, i) + ch.toUpperCase() + s.slice(i + w);
-    }
-    i += w;
-  }
-  return s;
-}
-
 function cleanContent(original) {
-  const rawOriginal = String(original ?? '');
-  let s = rawOriginal;
+  let s = String(original ?? '');
 
-  s = s.replace(LEADING_HEADER_RE, '').trim();
-  s = s.replace(/^\s*[-–]\s*\d+\s*[-–]?\s*/u, '').trim();
+  s = s.replace(/\u00ad/g, '');
+
+  const samvatMatch = s.match(/\bIn the Samvat year\b/i);
+  if (samvatMatch?.index > 0 && samvatMatch.index < 600) {
+    s = s.slice(samvatMatch.index).trim();
+  } else {
+    s = s.replace(LEADING_HEADER_RE, '').trim();
+    s = s.replace(LEADING_TITLE_RE, '').trim();
+  }
+
+  s = s.replace(LEADING_SECTION_RE, '').trim();
   s = s.replace(FOOTNOTE_RE, '');
   s = s.replace(HYPHEN_BREAK_RE, '$1-$2');
+  s = s.replace(LEADING_ORPHAN_PUNCT_RE, '').trim();
   s = s.replace(/\s+/g, ' ');
-  s = s.replace(/\s+([.,])/g, '$1');
-  s = trimMidSentenceAfterPeriod(s);
-  s = s.replace(/^\s*(Then|Also|However|But|And|So)\b,?\s*/i, '');
-  s = s.trim();
-  if (s.length) s = capitalizeFirstLetter(s);
-  s = s.trim();
 
-  const usedFallback = s.length < MIN_CLEAN_LEN;
-  const finalText = usedFallback ? rawOriginal : s;
-  return { finalText, usedFallback, cleanedLen: s.length };
+  let result = s.slice(0, 500);
+  const lastEnd = Math.max(
+    result.lastIndexOf('.'),
+    result.lastIndexOf('!'),
+    result.lastIndexOf('?')
+  );
+  if (lastEnd > 100) {
+    result = result.slice(0, lastEnd + 1);
+  } else {
+    result = result.slice(0, 400).replace(/\s+\S+$/, '') + '…';
+  }
+
+  const finalized = result.trim();
+  const usedFallback = finalized.length < MIN_CLEAN_LEN;
+
+  return {
+    finalText: usedFallback ? null : finalized,
+    usedFallback,
+    cleanedLen: finalized.length
+  };
 }
 
 async function main() {
@@ -96,9 +106,9 @@ async function main() {
   }
   if (showFallbacks) {
     console.log(
-      '--show-fallbacks: will log full original `content` for every row where cleaned text is <',
+      '--show-fallbacks: will log full original `content` for every row where clean result is <',
       MIN_CLEAN_LEN,
-      'chars.'
+      'chars (finalText will be null).'
     );
   }
 
@@ -152,6 +162,14 @@ async function main() {
 
     for (const row of rows) {
       const { finalText, usedFallback, cleanedLen } = cleanContent(row.content);
+
+      const suspiciousStart =
+        finalText != null && /^[.()\-–—]/.test(finalText);
+      if (dryRun && suspiciousStart) {
+        console.log(`\n[SUSPICIOUS START] id=${row.id}`);
+        console.log(finalText.slice(0, 180));
+      }
+
       if (usedFallback) skippedShort++;
 
       if (showFallbacks && usedFallback) {
@@ -165,7 +183,9 @@ async function main() {
 
       if (dryRun && samplesLogged < sampleLogs) {
         samplesLogged++;
-        const tag = usedFallback ? ' [FALLBACK: cleaned < ' + MIN_CLEAN_LEN + ' chars → keep original]' : '';
+        const tag = usedFallback
+          ? ' [FALLBACK: cleaned < ' + MIN_CLEAN_LEN + ' chars → finalText null]'
+          : '';
         console.log(`\n--- Sample ${samplesLogged}/${sampleLogs}  id=${row.id}${tag}`);
         const before = String(row.content ?? '');
         console.log(
@@ -174,11 +194,16 @@ async function main() {
         );
         console.log(
           'AFTER (first 450 chars):\n',
-          finalText.slice(0, 450) + (finalText.length > 450 ? '…' : '')
+          finalText == null
+            ? '(null — below threshold)'
+            : finalText.slice(0, 450) + (finalText.length > 450 ? '…' : '')
         );
       }
 
       if (!dryRun) {
+        if (finalText === null) {
+          continue;
+        }
         const { error: upErr } = await supabase
           .from('chunks')
           .update({ content_clean: finalText })
@@ -190,7 +215,7 @@ async function main() {
         } else {
           updated++;
         }
-      } else {
+      } else if (finalText !== null) {
         updated++;
       }
     }
@@ -203,11 +228,11 @@ async function main() {
 
   if (dryRun) {
     console.log(
-      `\nDry run finished. Would update ${updated} rows; ${skippedShort} would use original fallback (cleaned < ${MIN_CLEAN_LEN} chars); fetch failures: ${failed}. No writes performed.`
+      `\nDry run finished. Would update ${updated} rows; ${skippedShort} below threshold (finalText null, no write); fetch failures: ${failed}. No writes performed.`
     );
   } else {
     console.log(
-      `Done. Updated: ${updated}, skipped (cleaned < ${MIN_CLEAN_LEN} chars, used original): ${skippedShort}, failed: ${failed}`
+      `Done. Updated: ${updated}, skipped (cleaned < ${MIN_CLEAN_LEN} chars, finalText null, DB unchanged): ${skippedShort}, failed: ${failed}`
     );
   }
 }
