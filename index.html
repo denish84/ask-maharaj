@@ -94,7 +94,7 @@ tailwind.config = {
     padding: 14px 0 4px;
     text-align: center;
     font-size: 15px;
-    color: rgba(232,131,42,.32);
+    color: rgba(232,131,42,.75);
     letter-spacing: 0.5em;
     line-height: 1;
     transition: color .25s ease, letter-spacing .25s ease, filter .25s ease;
@@ -111,7 +111,7 @@ tailwind.config = {
     font-size: 9px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(232,131,42,.28);
+    color: rgba(232,131,42,.65);
     margin-top: 4px;
     font-family: 'Crimson Pro', serif;
     transition: color .25s ease;
@@ -756,7 +756,7 @@ tailwind.config = {
         <div id="ansText" class="answer-text"></div>
         <button id="foldBtn" type="button" aria-label="Fold back answer" onclick="foldAns()">
           <span aria-hidden="true">❧</span>
-          <span class="fold-hint">fold back</span>
+          <span class="fold-hint" id="foldHint">બંધ કરો</span>
         </button>
   </div>
 
@@ -1050,6 +1050,9 @@ function setLang(lang) {
 
   const btn = document.getElementById('askBtn');
   if (!btn.disabled) btn.textContent = s.btnText;
+
+  const foldHint = document.getElementById('foldHint');
+  if (foldHint) foldHint.textContent = lang === 'gu' ? 'બંધ કરો' : 'Fold the Scroll';
 
   const chipsShown = pickRandomChips(s.chipPool, 4);
   const chipClass = lang === 'gu' ? 'chip font-gujarati' : 'chip';
