@@ -95,6 +95,8 @@ tailwind.config = {
     display: none;
     opacity: 0;
     transition: opacity 0.6s ease;
+    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
   }
   #answerImage.loaded {
     opacity: 1;
@@ -673,6 +675,7 @@ tailwind.config = {
        style="background:linear-gradient(180deg,rgba(253,246,236,.04) 0%,rgba(15,6,0,.2) 100%),rgba(20,10,4,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(232,131,42,.38);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset,0 24px 48px rgba(0,0,0,.45),0 0 80px rgba(232,131,42,.08)">
 
     <img id="answerImage" src="" alt="" aria-hidden="true" />
+    <div id="answerImageCaption" style="display:none;text-align:center;font-size:11px;letter-spacing:0.08em;color:rgba(245,166,35,0.6);font-family:'Crimson Pro',serif;font-style:italic;padding:6px 12px 10px;background:rgba(0,0,0,0.2)"></div>
 
     <div class="relative z-10 p-6 pt-7">
 
@@ -1298,18 +1301,32 @@ function showAns(text, cached, coins) {
   const qEcho = document.getElementById('qEcho');
   if (qEcho) qEcho.textContent = question;
   const imgEl = document.getElementById('answerImage');
+  const capEl = document.getElementById('answerImageCaption');
   if (imgEl) {
-    const imgUrl = getAnswerImage(question, window._lastCitations || []);
-    if (imgUrl) {
-      imgEl.src = imgUrl;
+    const result = getAnswerImage(question, window._lastCitations || []);
+    if (result) {
+      imgEl.src = result.url;
       imgEl.style.display = 'block';
       imgEl.classList.remove('loaded');
+      imgEl.alt = '';
+      imgEl.setAttribute('aria-describedby', 'answerImageCaption');
+      imgEl.removeAttribute('aria-hidden');
       imgEl.onload = () => imgEl.classList.add('loaded');
       if (imgEl.complete && imgEl.naturalWidth) imgEl.classList.add('loaded');
+      if (capEl) {
+        capEl.textContent = '📍 ' + result.caption;
+        capEl.style.display = 'block';
+      }
     } else {
       imgEl.style.display = 'none';
       imgEl.src = '';
       imgEl.classList.remove('loaded');
+      imgEl.removeAttribute('aria-describedby');
+      imgEl.setAttribute('aria-hidden', 'true');
+      if (capEl) {
+        capEl.textContent = '';
+        capEl.style.display = 'none';
+      }
     }
   }
   if (question && !cached) saveRecentQuestion(question, text);
@@ -1346,10 +1363,17 @@ function showAns(text, cached, coins) {
 function hideAns() {
   document.getElementById('ansCard').classList.remove('show');
   const imgEl = document.getElementById('answerImage');
+  const capEl = document.getElementById('answerImageCaption');
   if (imgEl) {
     imgEl.style.display = 'none';
     imgEl.src = '';
     imgEl.classList.remove('loaded');
+    imgEl.removeAttribute('aria-describedby');
+    imgEl.setAttribute('aria-hidden', 'true');
+  }
+  if (capEl) {
+    capEl.textContent = '';
+    capEl.style.display = 'none';
   }
 }
 function showErr(m) { const e=document.getElementById('errBox'); e.textContent=m; e.classList.add('show'); }
@@ -1450,36 +1474,36 @@ const REACTIONS = {
 };
 
 const SECTION_IMAGES = {
-  'GADHADA I':   '/images/gadhada.jpg',
-  'GADHADA II':  '/images/gadhada.jpg',
-  'GADHADA III': '/images/gadhada.jpg',
-  'SARANGPUR':   '/images/sarangpur.jpg',
-  'KARIYANI':    '/images/kariyani.jpg',
-  'LOYA':        '/images/loya.jpg',
-  'PANCHALA':    '/images/panchala.jpg',
-  'VADTAL':      '/images/vadtal.jpg',
-  'AMDAVAD':     '/images/vadtal.jpg',
-  'JETALPUR':    '/images/jetalpur.jpg',
+  'GADHADA I':   { url: '/images/gadhada.jpg',   caption: "Dada Khachar's Darbar, Gadhada" },
+  'GADHADA II':  { url: '/images/gadhada.jpg',   caption: "Dada Khachar's Darbar, Gadhada" },
+  'GADHADA III': { url: '/images/gadhada.jpg',   caption: "Dada Khachar's Darbar, Gadhada" },
+  'SARANGPUR':   { url: '/images/sarangpur.jpg', caption: "Jeeva Khachar's Darbar, Sarangpur" },
+  'KARIYANI':    { url: '/images/kariyani.jpg',  caption: 'Kariyani Darbar' },
+  'LOYA':        { url: '/images/loya.jpg',      caption: 'Loya Darbar' },
+  'PANCHALA':    { url: '/images/panchala.jpg',  caption: 'Panchala — Paramhans Palace' },
+  'VADTAL':      { url: '/images/vadtal.jpg',    caption: 'Vartal Mandir' },
+  'AMDAVAD':     { url: '/images/vadtal.jpg',    caption: 'Amdavad Darbar' },
+  'JETALPUR':    { url: '/images/jetalpur.jpg',  caption: 'Jetalpur Mahol' },
 };
 
 const TOPIC_IMAGES = [
-  { keywords: ['anger', 'ક્રોધ', 'krodh'],                 url: '/images/loya.jpg' },
-  { keywords: ['maya', 'માયા', 'illusion'],                url: '/images/gadhada.jpg' },
-  { keywords: ['satsang', 'સત્સંગ', 'sabha', 'assembly'], url: '/images/vadtal.jpg' },
-  { keywords: ['bhakti', 'ભક્તિ', 'devotion', 'puja'],    url: '/images/sarangpur.jpg' },
-  { keywords: ['ekadashi', 'એકાદશી', 'fasting'],          url: '/images/panchala.jpg' },
-  { keywords: ['mind', 'મન', 'peace', 'શાંતિ', 'stress'], url: '/images/loya.jpg' },
-  { keywords: ['faith', 'શ્રદ્ધા', 'trust', 'nischay'],   url: '/images/kariyani.jpg' },
-  { keywords: ['vairagya', 'વૈરાગ્ય', 'detachment'],      url: '/images/panchala.jpg' },
-  { keywords: ['kusang', 'કુસંગ', 'company'],              url: '/images/kariyani.jpg' },
-  { keywords: ['akshar', 'અક્ષર', 'brahm', 'akshardham'], url: '/images/gadhada.jpg' },
+  { keywords: ['anger', 'ક્રોધ', 'krodh'],                 url: '/images/loya.jpg',      caption: 'Loya Darbar' },
+  { keywords: ['maya', 'માયા', 'illusion'],                url: '/images/gadhada.jpg',   caption: "Dada Khachar's Darbar, Gadhada" },
+  { keywords: ['satsang', 'સત્સંગ', 'sabha', 'assembly'], url: '/images/vadtal.jpg',    caption: 'Vartal Mandir' },
+  { keywords: ['bhakti', 'ભક્તિ', 'devotion', 'puja'],    url: '/images/sarangpur.jpg', caption: "Jeeva Khachar's Darbar, Sarangpur" },
+  { keywords: ['ekadashi', 'એકાદશી', 'fasting'],          url: '/images/panchala.jpg',  caption: 'Panchala — Paramhans Palace' },
+  { keywords: ['mind', 'મન', 'peace', 'શાંતિ', 'stress'], url: '/images/loya.jpg',      caption: 'Loya Darbar' },
+  { keywords: ['faith', 'શ્રદ્ધા', 'trust', 'nischay'],   url: '/images/kariyani.jpg',  caption: 'Kariyani Darbar' },
+  { keywords: ['vairagya', 'વૈરાગ્ય', 'detachment'],      url: '/images/panchala.jpg',  caption: 'Panchala — Paramhans Palace' },
+  { keywords: ['kusang', 'કુસંગ', 'company'],              url: '/images/kariyani.jpg',  caption: 'Kariyani Darbar' },
+  { keywords: ['akshar', 'અક્ષર', 'brahm', 'akshardham'], url: '/images/gadhada.jpg',   caption: "Dada Khachar's Darbar, Gadhada" },
 ];
 
 function getAnswerImage(question, citations) {
   const q = (question || '').toLowerCase();
   for (const t of TOPIC_IMAGES) {
     if (t.keywords.some(k => q.includes(k.toLowerCase()))) {
-      return t.url;
+      return { url: t.url, caption: t.caption };
     }
   }
   if (citations && citations.length > 0) {
