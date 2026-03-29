@@ -1504,6 +1504,12 @@ const SECTION_IMAGES = {
   'JETALPUR':    { url: '/images/jetalpur.jpg',  caption: 'Jetalpur Mahol' },
 };
 
+/** When the question matches no topic keywords and citations have no known place — e.g. off-topic questions. */
+const DEFAULT_ANSWER_IMAGE = {
+  url: '/images/vachanamrut.png',
+  caption: 'Vachanamrut',
+};
+
 const TOPIC_IMAGES = [
   { keywords: ['anger', 'ક્રોધ', 'krodh'],                 url: '/images/loya.jpg',      caption: 'Loya Darbar' },
   { keywords: ['maya', 'માયા', 'illusion'],                url: '/images/gadhada.jpg',   caption: "Dada Khachar's Darbar, Gadhada" },
@@ -1530,7 +1536,7 @@ function getAnswerImage(question, citations) {
       return SECTION_IMAGES[section];
     }
   }
-  return null;
+  return DEFAULT_ANSWER_IMAGE;
 }
 
 const REACTION_HEADING = {
