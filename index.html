@@ -88,39 +88,36 @@ tailwind.config = {
   #errBox.show   { display: block; }
 
   #answerImage {
+    display: none;
     width: 100%;
     height: 180px;
     object-fit: cover;
+    object-position: center;
     border-radius: 10px 10px 0 0;
-    display: none;
+    vertical-align: bottom;
     opacity: 0;
     transition: opacity 0.6s ease;
-    /* Long feather into the card: solid top ~⅓, soft blend over ~⅔ (avoids a hard “cut”) */
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      #000 0%,
-      #000 32%,
-      rgba(0, 0, 0, 0.92) 48%,
-      rgba(0, 0, 0, 0.55) 68%,
-      rgba(0, 0, 0, 0.18) 86%,
-      transparent 100%
-    );
-    -webkit-mask-size: 100% 100%;
-    -webkit-mask-repeat: no-repeat;
-    mask-image: linear-gradient(
-      to bottom,
-      #000 0%,
-      #000 32%,
-      rgba(0, 0, 0, 0.92) 48%,
-      rgba(0, 0, 0, 0.55) 68%,
-      rgba(0, 0, 0, 0.18) 86%,
-      transparent 100%
-    );
-    mask-size: 100% 100%;
-    mask-repeat: no-repeat;
   }
   #answerImage.loaded {
     opacity: 1;
+  }
+  /* Dark band + pin live *below* the photo (not masked onto it) */
+  #answerImageCaption {
+    display: none;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: rgba(245, 166, 35, 0.72);
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    padding: 12px 14px 14px;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.48) 55%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   /* ── Glass card ── */
@@ -696,7 +693,7 @@ tailwind.config = {
        style="background:linear-gradient(180deg,rgba(253,246,236,.04) 0%,rgba(15,6,0,.2) 100%),rgba(20,10,4,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(232,131,42,.38);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset,0 24px 48px rgba(0,0,0,.45),0 0 80px rgba(232,131,42,.08)">
 
     <img id="answerImage" src="" alt="" aria-hidden="true" />
-    <div id="answerImageCaption" style="display:none;text-align:center;font-size:11px;letter-spacing:0.08em;color:rgba(245,166,35,0.6);font-family:'Crimson Pro',serif;font-style:italic;padding:6px 12px 10px;background:rgba(0,0,0,0.2)"></div>
+    <div id="answerImageCaption"></div>
 
     <div class="relative z-10 p-6 pt-7">
 
