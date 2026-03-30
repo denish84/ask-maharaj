@@ -689,61 +689,78 @@ tailwind.config = {
     letter-spacing: 0;
   }
 
-  /* Word stagger + gold flash — inline-block required: iOS Safari ignores transform on inline */
-  .daily-text.daily-text--scripture.daily-quote--stagger .daily-word {
-    display: inline-block;
-    vertical-align: baseline;
+  /* One-shot gold shimmer across full quote (CSS only); text stays stable */
+  .daily-text.daily-text--scripture .daily-quote-inner {
+    position: relative;
+    display: block;
+    isolation: isolate;
+    z-index: 1;
+  }
+  .daily-text.daily-text--scripture.daily-quote--shimmer .daily-quote-inner::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 52%;
+    left: -18%;
+    z-index: -1;
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      rgba(255, 214, 140, 0) 18%,
+      rgba(255, 200, 95, 0.12) 38%,
+      rgba(255, 236, 200, 0.32) 50%,
+      rgba(255, 200, 95, 0.12) 62%,
+      rgba(255, 214, 140, 0) 82%,
+      transparent 100%
+    );
+    mix-blend-mode: soft-light;
+    transform: translateX(-35%);
     opacity: 0;
-    transform: translate3d(0, 0.12em, 0);
-    -webkit-animation: dailyWordReveal 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    animation: dailyWordReveal 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    -webkit-animation: dailyQuoteShimmerPass 3.15s cubic-bezier(0.28, 0, 0.18, 1) forwards;
+    animation: dailyQuoteShimmerPass 3.15s cubic-bezier(0.28, 0, 0.18, 1) forwards;
+    pointer-events: none;
   }
-  @-webkit-keyframes dailyWordReveal {
+  @-webkit-keyframes dailyQuoteShimmerPass {
     0% {
+      -webkit-transform: translateX(-35%);
+      transform: translateX(-35%);
       opacity: 0;
-      -webkit-transform: translate3d(0, 0.12em, 0);
-      transform: translate3d(0, 0.12em, 0);
-      color: rgba(245, 166, 35, 0.98);
-      text-shadow: 0 0 14px rgba(245, 166, 35, 0.45);
     }
-    50% {
-      color: rgba(252, 211, 120, 0.98);
-      text-shadow: 0 0 10px rgba(245, 166, 35, 0.35);
+    6% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 1;
     }
     100% {
-      opacity: 1;
-      -webkit-transform: translate3d(0, 0, 0);
-      transform: translate3d(0, 0, 0);
-      color: rgba(255, 255, 255, 0.88);
-      text-shadow: none;
+      -webkit-transform: translateX(245%);
+      transform: translateX(245%);
+      opacity: 0;
     }
   }
-  @keyframes dailyWordReveal {
+  @keyframes dailyQuoteShimmerPass {
     0% {
+      transform: translateX(-35%);
       opacity: 0;
-      transform: translate3d(0, 0.12em, 0);
-      color: rgba(245, 166, 35, 0.98);
-      text-shadow: 0 0 14px rgba(245, 166, 35, 0.45);
     }
-    50% {
-      color: rgba(252, 211, 120, 0.98);
-      text-shadow: 0 0 10px rgba(245, 166, 35, 0.35);
+    6% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 1;
     }
     100% {
-      opacity: 1;
-      transform: translate3d(0, 0, 0);
-      color: rgba(255, 255, 255, 0.88);
-      text-shadow: none;
+      transform: translateX(245%);
+      opacity: 0;
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .daily-text.daily-text--scripture.daily-quote--stagger .daily-word {
+    .daily-text.daily-text--scripture.daily-quote--shimmer .daily-quote-inner::before {
       -webkit-animation: none !important;
       animation: none !important;
-      opacity: 1 !important;
+      opacity: 0 !important;
       transform: none !important;
-      color: inherit !important;
-      text-shadow: none !important;
     }
   }
   #dailyBanner.daily-lang-gu .daily-text.daily-text--scripture {
@@ -1313,10 +1330,34 @@ function dailyPullQuoteWordCount(text, pullOverride) {
   return Math.min(16, Math.max(6, Math.ceil(n * 0.3)));
 }
 
-/** Reduced-motion: same pull spans, no stagger. */
+/** Split plain text after `pullN` words (for one span pull-quote + rest). */
+function splitPlainIntoLeadRest(plain, pullN) {
+  const wordTotal = plain.split(/\s+/).filter(w => w.length).length;
+  const pullNEff = pullN > 0 ? Math.min(pullN, wordTotal) : 0;
+  if (pullNEff <= 0) return { lead: null, rest: plain };
+  const parts = plain.split(/(\s+)/);
+  let wordIndex = 0;
+  let cut = parts.length;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (!/^\s+$/.test(part) && part) {
+      wordIndex += 1;
+      if (wordIndex === pullNEff) {
+        cut = i + 1;
+        break;
+      }
+    }
+  }
+  return {
+    lead: parts.slice(0, cut).join(''),
+    rest: parts.slice(cut).join('')
+  };
+}
+
+/** Reduced-motion: same pull spans, no shimmer. */
 function mountDailyQuotePlain(el, plain, pullN) {
   el.textContent = '';
-  el.classList.remove('daily-quote--stagger');
+  el.classList.remove('daily-quote--stagger', 'daily-quote--shimmer');
   const wordTotal = plain.split(/\s+/).filter(w => w.length).length;
   const pullNEff = pullN > 0 ? Math.min(pullN, wordTotal) : 0;
   if (pullNEff <= 0) {
@@ -1343,13 +1384,12 @@ function mountDailyQuotePlain(el, plain, pullN) {
 }
 
 /**
- * Daily quote: word-by-word reveal with brief gold highlight.
- * Stagger budget ~1.05s (readable pace); letter-by-letter avoided (a11y, copy, perf).
- * Opening sentence (or heuristic lead) uses .daily-word--pull; plain + pull when reduced motion.
+ * Daily quote: full text visible; one slow gold shimmer pass (CSS) over the block.
+ * Pull lead uses .daily-word--pull in a single span; reduced motion skips shimmer.
  */
 function mountDailyQuoteStagger(el, text, payload) {
   if (!el) return;
-  el.classList.remove('daily-quote--stagger');
+  el.classList.remove('daily-quote--stagger', 'daily-quote--shimmer');
   const plain = String(text || '').trim();
   if (!plain) {
     el.textContent = '';
@@ -1373,47 +1413,20 @@ function mountDailyQuoteStagger(el, text, payload) {
   }
 
   el.textContent = '';
-  const parts = plain.split(/(\s+)/);
-  const wordTokens = parts.filter((p, i) => i % 2 === 0 && p !== '');
-  const n = wordTokens.length;
-  const pullNEff = pullN > 0 ? Math.min(pullN, n) : 0;
-  const maxLeadSec = 1.05;
-  const slotSec = n > 1 ? Math.min(0.055, maxLeadSec / (n - 1)) : 0;
-  let wordIndex = 0;
-  parts.forEach(part => {
-    if (/^\s+$/.test(part)) {
-      el.appendChild(document.createTextNode(part));
-    } else if (part) {
-      const span = document.createElement('span');
-      span.className =
-        'daily-word' + (pullNEff > 0 && wordIndex < pullNEff ? ' daily-word--pull' : '');
-      span.textContent = part;
-      const d = `${(wordIndex * slotSec).toFixed(3)}s`;
-      span.style.webkitAnimationDelay = d;
-      span.style.animationDelay = d;
-      wordIndex += 1;
-      el.appendChild(span);
-    }
-  });
-  el.classList.add('daily-quote--stagger');
-  /* iOS/WebKit: force layout so animations start; fallback if they never run (opacity stuck at 0) */
+  const inner = document.createElement('span');
+  inner.className = 'daily-quote-inner';
+  const { lead, rest } = splitPlainIntoLeadRest(plain, pullN);
+  if (lead != null && lead !== '') {
+    const sp = document.createElement('span');
+    sp.className = 'daily-word--pull';
+    sp.textContent = lead;
+    inner.appendChild(sp);
+  }
+  if (rest) inner.appendChild(document.createTextNode(rest));
+
+  el.appendChild(inner);
+  el.classList.add('daily-quote--shimmer');
   void el.offsetHeight;
-  const fallbackMs = Math.min(4500, Math.ceil((slotSec * Math.max(0, n - 1) + 0.65) * 1000) + 200);
-  setTimeout(() => {
-    if (!el.classList.contains('daily-quote--stagger')) return;
-    el.querySelectorAll('.daily-word').forEach(w => {
-      const win = /** @type {HTMLElement} */ (w);
-      const op = parseFloat(getComputedStyle(win).opacity);
-      if (op < 0.95) {
-        win.style.webkitAnimation = 'none';
-        win.style.animation = 'none';
-        win.style.opacity = '1';
-        win.style.transform = 'none';
-        win.style.color = 'rgba(255,255,255,0.88)';
-        win.style.textShadow = 'none';
-      }
-    });
-  }, fallbackMs);
 }
 
 function applyLoadedDailyText(lang) {
