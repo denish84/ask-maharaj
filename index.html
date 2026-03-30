@@ -525,12 +525,22 @@ tailwind.config = {
     font-weight: 600;
     text-shadow: 0 0 12px rgba(255, 191, 0, 0.35);
   }
+  /* Theme title: readable label size (≥13px), line-height for wraps; EN tracking vs GU (Indic = tight tracking) */
   .daily-eyebrow {
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
-    color: rgba(245,166,35,0.55);
-    margin-bottom: 6px;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    letter-spacing: 0.1em;
+    color: rgba(245, 166, 35, 0.82);
+    margin-bottom: 8px;
+    padding: 0 6px;
     text-align: center;
+    font-weight: 600;
+    font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+    text-wrap: balance;
+  }
+  #dailyBanner.daily-lang-gu .daily-eyebrow {
+    font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
+    letter-spacing: 0.03em;
     font-weight: 600;
   }
   .daily-date-chip {
@@ -1216,6 +1226,7 @@ function applyLoadedDailyText(lang) {
 function updateDailyTitle(lang) {
   const dailyTitle = document.getElementById('dailyTitle');
   if (!dailyTitle) return;
+  dailyTitle.lang = lang === 'gu' ? 'gu' : 'en';
   if (isDailyShuffleMode()) {
     dailyTitle.textContent =
       lang === 'gu' ? 'ચકાસણી · દર refresh નવું' : 'Test · random each refresh';
