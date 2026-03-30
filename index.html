@@ -125,6 +125,11 @@ tailwind.config = {
   #foldBtn:hover .fold-hint {
     color: rgba(245,166,35,.55);
   }
+  #foldBtn .fold-hint[lang="gu"] {
+    font-family: 'Noto Serif Gujarati', Georgia, serif;
+    letter-spacing: 0.1em;
+    text-transform: none;
+  }
   /* ── Show / hide helpers (JS toggles .show) ── */
   #ansCard       { display: none; }
   #ansCard.show  { display: block; animation: scrollOpen .65s cubic-bezier(.34,1.56,.64,1) both; }
@@ -364,11 +369,27 @@ tailwind.config = {
   }
   #ansText.answer-text strong { font-weight: 600; }
   #ansText.answer-text em { font-style: italic; }
+  #ansText.answer-text[lang="gu"] {
+    font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
+  }
   /* Repeated question — readable contrast (WCAG-friendly on dark card) */
   .ans-q-echo {
     font-size: 0.875rem;
     line-height: 1.55;
     color: rgba(232, 220, 200, 0.72);
+  }
+  .ans-q-echo[lang="gu"] {
+    font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
+  }
+  #ansCardTitle[lang="gu"] {
+    font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
+    letter-spacing: 0.08em;
+  }
+  #answerImageCaption[lang="gu"] {
+    font-family: 'Noto Serif Gujarati', Georgia, serif;
+  }
+  #trustLine[lang="gu"] {
+    font-family: 'Noto Serif Gujarati', Georgia, serif;
   }
   /* Keyboard focus — WCAG 2.4.7 Focus Visible */
   #foldBtn:focus-visible,
@@ -486,6 +507,16 @@ tailwind.config = {
     100% { transform: scale(1)   translateY(-2px); }
   }
   .reaction-btn.selected { animation: reactionPop .32s cubic-bezier(.34,1.56,.64,1) both; }
+
+  #reactionWrap[lang="gu"] .reaction-btn {
+    font-family: 'Noto Serif Gujarati', 'Crimson Pro', Georgia, serif;
+  }
+  #reactionWrap[lang="gu"] #reactionLabel {
+    font-family: 'Noto Serif Gujarati', Georgia, serif;
+  }
+  #reactionWrap[lang="gu"] #reactionConfirm {
+    font-family: 'Noto Serif Gujarati', Georgia, serif;
+  }
 
   #dailyBanner {
     margin: 0 0 14px;
@@ -914,14 +945,14 @@ tailwind.config = {
     <div class="relative z-10 p-6 pt-7">
 
       <!-- User question echo -->
-      <p id="qEcho" class="ans-q-echo italic mb-4 leading-relaxed"></p>
+      <p id="qEcho" class="ans-q-echo italic mb-4 leading-relaxed" lang="en"></p>
 
       <!-- Head row -->
       <div class="flex items-center gap-2 mb-4 flex-wrap">
         <span class="text-[1.3rem] leading-none" aria-hidden="true"
               style="filter:drop-shadow(0 2px 8px rgba(232,131,42,.32))">📖</span>
         <span id="ansCardTitle" class="text-xs uppercase tracking-[.14em] font-semibold font-serif"
-              style="color:rgba(245,166,35,.95)">Maharaj Kahe Chhe</span>
+              lang="en" style="color:rgba(245,166,35,.95)">Maharaj Kahe Chhe</span>
         <span id="cTag" class="ml-auto"
               style="display:none;font-size:16px;opacity:0.6;filter:drop-shadow(0 0 4px rgba(232,131,42,0.5))">🕉</span>
   </div>
@@ -931,15 +962,16 @@ tailwind.config = {
            style="background:linear-gradient(180deg,rgba(253,246,236,.07) 0%,rgba(253,246,236,.02) 100%);border:1px solid rgba(253,246,236,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)">
         <span class="absolute left-1/2 -translate-x-1/2 top-1.5 leading-none"
               aria-hidden="true" style="font-size:10px;color:rgba(232,131,42,.38);z-index:0">❧</span>
-        <div id="ansText" class="answer-text"></div>
+        <div id="ansText" class="answer-text" lang="en"></div>
         <button id="foldBtn" type="button" aria-label="Fold back answer" onclick="foldAns()">
           <span aria-hidden="true">❧</span>
           <span class="fold-hint" id="foldHint">બંધ કરો</span>
         </button>
   </div>
 
-      <div id="reactionWrap" style="display:none;margin-top:1.25rem">
-        <p id="reactionLabel" class="text-center mb-3 font-serif text-base" style="color:rgba(232,220,200,.75)"></p>
+      <div id="reactionWrap" lang="en" style="display:none;margin-top:1.25rem">
+        <p id="reactionLabel" class="text-center mb-3 font-serif text-base" lang="en"
+           style="color:rgba(232,220,200,.75)"></p>
         <div id="reactionBtns" class="flex flex-wrap justify-center gap-3"></div>
         <p id="reactionConfirm" class="text-center mt-3 text-base font-serif" style="display:none;color:#f5a623"></p>
       </div>
@@ -955,7 +987,7 @@ tailwind.config = {
         </button>
       </div>
 
-      <p id="trustLine">
+      <p id="trustLine" lang="en">
         AI-assisted guidance. Please verify with a learned santo or the Vachanamrut directly.
       </p>
 
@@ -1080,6 +1112,10 @@ const LANG_STRINGS = {
     ],
     limitMsg: `🙏 Daily limit of ${DAILY_QUESTION_LIMIT} questions reached. Come back tomorrow. Jai Swaminarayan 🙏`,
     langSuffix: 'IMPORTANT: You must answer in English only.',
+    answerCardTitle: 'Maharaj Kahe Chhe',
+    trustLine:
+      'AI-assisted guidance. Please verify with a learned santo or the Vachanamrut directly.',
+    foldAnswerAria: 'Fold back answer',
     exploreDeeperTitle: 'Explore Deeper',
     dailyShareWhatsApp: 'Share on WhatsApp',
     dailyShareHead: '*Daily Wisdom from Ask Maharaj*',
@@ -1112,6 +1148,10 @@ const LANG_STRINGS = {
     ],
     limitMsg: `🙏 આજની ${DAILY_QUESTION_LIMIT} પ્રશ્નની મર્યાદા પૂરી થઈ ગઈ. કાલે પાછા આવજો. જય સ્વામિનારાયણ 🙏`,
     langSuffix: 'IMPORTANT: You must answer in Gujarati script only.',
+    answerCardTitle: 'મહારાજ કહે છે',
+    trustLine:
+      'AI દ્વારા સહાય્ય માર્ગદર્શન. કૃપા કરી જાણકાર સંતો અથવા વચનામૃતથી ચકાસણી કરજો.',
+    foldAnswerAria: 'જવાબ બંધ કરો',
     exploreDeeperTitle: 'ઊંડાણથી જાણો',
     dailyShareWhatsApp: 'વોટ્સએપ પર શેર કરો',
     dailyShareHead: '*Ask Maharaj માંથી આજનો વિચાર*',
@@ -1291,9 +1331,15 @@ function setLang(lang) {
     hideErr();
     hideAns();
     const qEcho = document.getElementById('qEcho');
-    if (qEcho) qEcho.textContent = '';
+    if (qEcho) {
+      qEcho.textContent = '';
+      qEcho.lang = 'en';
+    }
     const ansText = document.getElementById('ansText');
-    if (ansText) ansText.innerHTML = '';
+    if (ansText) {
+      ansText.innerHTML = '';
+      ansText.lang = 'en';
+    }
     const cTag = document.getElementById('cTag');
     if (cTag) cTag.style.display = 'none';
   }
@@ -1304,7 +1350,23 @@ function setLang(lang) {
   if (!btn.disabled) btn.textContent = s.btnText;
 
   const foldHint = document.getElementById('foldHint');
-  if (foldHint) foldHint.textContent = lang === 'gu' ? 'બંધ કરો' : 'Fold the Scroll';
+  if (foldHint) {
+    foldHint.textContent = lang === 'gu' ? 'બંધ કરો' : 'Fold the Scroll';
+    foldHint.lang = lang === 'gu' ? 'gu' : 'en';
+  }
+
+  const ansTitle = document.getElementById('ansCardTitle');
+  if (ansTitle) {
+    ansTitle.textContent = s.answerCardTitle;
+    ansTitle.lang = lang === 'gu' ? 'gu' : 'en';
+  }
+  const trust = document.getElementById('trustLine');
+  if (trust) {
+    trust.textContent = s.trustLine;
+    trust.lang = lang === 'gu' ? 'gu' : 'en';
+  }
+  const foldBtnEl = document.getElementById('foldBtn');
+  if (foldBtnEl) foldBtnEl.setAttribute('aria-label', s.foldAnswerAria);
 
   const chipsShown = pickRandomChips(s.chipPool, 4);
   const chipClass = lang === 'gu' ? 'chip font-gujarati' : 'chip';
@@ -1545,6 +1607,12 @@ function setLoad(on) {
   }
 }
 
+/** BCP47 lang for mixed UI vs user/model text (Gujarati Unicode block). */
+function inferTextLang(str) {
+  if (str == null || !String(str).trim()) return 'en';
+  return /[\u0A80-\u0AFF]/.test(String(str)) ? 'gu' : 'en';
+}
+
 function mdToHtml(text) {
   const normalized = String(text)
     // collapse excessive blank lines from model output
@@ -1612,7 +1680,10 @@ function mdToHtml(text) {
 function showAns(text, cached, coins) {
   const question = document.getElementById('q').value.trim();
   const qEcho = document.getElementById('qEcho');
-  if (qEcho) qEcho.textContent = question;
+  if (qEcho) {
+    qEcho.textContent = question;
+    qEcho.lang = inferTextLang(question);
+  }
   const imgEl = document.getElementById('answerImage');
   const capEl = document.getElementById('answerImageCaption');
   if (imgEl) {
@@ -1628,6 +1699,7 @@ function showAns(text, cached, coins) {
       if (imgEl.complete && imgEl.naturalWidth) imgEl.classList.add('loaded');
       if (capEl) {
         capEl.textContent = result.noPin ? result.caption : '📍 ' + result.caption;
+        capEl.lang = inferTextLang(capEl.textContent);
         capEl.style.display = 'block';
       }
     } else {
@@ -1643,7 +1715,9 @@ function showAns(text, cached, coins) {
     }
   }
   if (question && !cached) saveRecentQuestion(question, text);
-  document.getElementById('ansText').innerHTML = mdToHtml(text);
+  const ansTextEl = document.getElementById('ansText');
+  ansTextEl.innerHTML = mdToHtml(text);
+  ansTextEl.lang = inferTextLang(text);
   // Remove old citations if any
   const oldCitations = document.getElementById('citationsBlock');
   if (oldCitations) oldCitations.remove();
@@ -1652,6 +1726,7 @@ function showAns(text, cached, coins) {
   if (window._lastCitations && window._lastCitations.length > 0) {
     const citBlock = document.createElement('div');
     citBlock.id = 'citationsBlock';
+    citBlock.setAttribute('lang', 'en');
     citBlock.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid rgba(232,131,42,.18)';
     citBlock.innerHTML = `
     <p style="font-size:0.8125rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(232,131,42,.65);margin-bottom:8px;font-family:\'Crimson Pro\',serif;line-height:1.4">📜 Sources from Vachanamrut</p>
@@ -1848,7 +1923,7 @@ function getAnswerImage(question, citations) {
 
 const REACTION_HEADING = {
   en: 'Hriday Sparsh',
-  gu: 'Hriday Sparsh'
+  gu: 'હૃદય સ્પર્શ'
 };
 
 let reactionTimer = null;
@@ -1863,6 +1938,8 @@ function showReactions() {
   // Reset state
   confirm.style.display = 'none';
   confirm.textContent = '';
+  wrap.setAttribute('lang', lang);
+  label.lang = lang;
   label.textContent = REACTION_HEADING[lang];
 
   // Render buttons
@@ -1899,6 +1976,7 @@ async function handleReaction(reaction, clickedBtn) {
 
   // Show confirmation
   confirm.textContent = reaction.confirm;
+  confirm.lang = inferTextLang(reaction.confirm);
   confirm.style.display = 'block';
   confirm.style.animation = 'fadeUp .4s ease both';
 
@@ -1993,12 +2071,18 @@ function syncDailyBannerChrome(lang) {
   const banner = document.getElementById('dailyBanner');
   if (btn) {
     const label = document.getElementById('dailyShareBtnLabel');
-    if (label) label.textContent = s.dailyShareWhatsApp;
+    if (label) {
+      label.textContent = s.dailyShareWhatsApp;
+      label.lang = lang === 'gu' ? 'gu' : 'en';
+    }
     btn.classList.toggle('font-gujarati', lang === 'gu');
   }
   const ansShareBtn = document.getElementById('answerShareBtn');
   const ansShareLabel = document.getElementById('answerShareBtnLabel');
-  if (ansShareLabel) ansShareLabel.textContent = s.dailyShareWhatsApp;
+  if (ansShareLabel) {
+    ansShareLabel.textContent = s.dailyShareWhatsApp;
+    ansShareLabel.lang = lang === 'gu' ? 'gu' : 'en';
+  }
   if (ansShareBtn) ansShareBtn.classList.toggle('font-gujarati', lang === 'gu');
   const pillsEl = document.getElementById('dailyPills');
   if (pillsEl) pillsEl.classList.toggle('font-gujarati', lang === 'gu');
