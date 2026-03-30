@@ -533,6 +533,28 @@ tailwind.config = {
     text-align: center;
     font-weight: 600;
   }
+  .daily-date-chip {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto 10px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    box-sizing: border-box;
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-weight: 600;
+    color: rgba(232, 220, 200, 0.78);
+    background: rgba(245, 166, 35, 0.09);
+    border: 1px solid rgba(245, 166, 35, 0.28);
+    text-align: center;
+    line-height: 1.35;
+  }
+  #dailyBanner.daily-lang-gu .daily-date-chip {
+    font-family: 'Noto Serif Gujarati', Georgia, serif;
+    letter-spacing: 0.06em;
+  }
   /* QA: ?dailyShuffle=1 — random passage each refresh */
   #dailyBanner.daily-shuffle-mode .daily-eyebrow {
     color: rgba(160, 210, 255, 0.85);
@@ -797,6 +819,7 @@ tailwind.config = {
   <div id="dailyBanner" class="daily-lang-en" style="display:none">
     <div class="daily-inner">
       <div class="daily-card-flourish" aria-hidden="true">✦</div>
+      <div class="daily-date-chip" id="dailyDateChip" aria-live="polite"></div>
       <div class="daily-eyebrow" id="dailyTitle">Aaj nu Vachanamrut</div>
       <blockquote class="daily-text daily-text--scripture" id="dailyText"></blockquote>
       <p class="daily-lang-note" id="dailyLangNote" aria-hidden="true">(મૂળ અંગ્રેજી અનુવાદ)</p>
@@ -1914,8 +1937,29 @@ function renderDailyPills(d) {
   el.innerHTML = `<span class="daily-pill daily-pill--citation">${escDailyHtml(line)}</span>`;
 }
 
+function formatDailyDateChip(lang) {
+  const opts = { day: 'numeric', month: 'long', year: 'numeric' };
+  try {
+    return new Date().toLocaleDateString(lang === 'gu' ? 'gu-IN' : 'en-GB', opts);
+  } catch (e) {
+    return new Date().toLocaleDateString('en-GB', opts);
+  }
+}
+
+function updateDailyDateChip(lang) {
+  const el = document.getElementById('dailyDateChip');
+  if (!el) return;
+  const label = formatDailyDateChip(lang);
+  el.textContent = label;
+  el.setAttribute(
+    'aria-label',
+    lang === 'gu' ? `તારીખ: ${label}` : `Today's date: ${label}`
+  );
+}
+
 function syncDailyBannerChrome(lang) {
   const s = LANG_STRINGS[lang] || LANG_STRINGS.en;
+  updateDailyDateChip(lang);
   updateDailyTitle(lang);
   updateDailyLangNote(lang);
   const btn = document.getElementById('dailyShareBtn');
