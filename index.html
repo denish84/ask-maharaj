@@ -617,6 +617,21 @@ tailwind.config = {
   #dailyBanner.daily-shuffle-mode .daily-eyebrow {
     color: rgba(160, 210, 255, 0.85);
   }
+  /* Scroll reveal: quote hidden until #dailyBanner intersects viewport (IO in JS) */
+  .daily-text.daily-text--scripture.daily-await-reveal {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+    will-change: opacity, transform;
+  }
+  .daily-text.daily-text--scripture.daily-revealed {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    transition:
+      opacity 0.72s cubic-bezier(0.22, 1, 0.32, 1),
+      transform 0.72s cubic-bezier(0.22, 1, 0.32, 1);
+    will-change: auto;
+  }
+
   /* Manuscript strip: parchment + left scripture accent (rule + ❧), no motion */
   .daily-text.daily-text--scripture {
     position: relative;
@@ -696,7 +711,7 @@ tailwind.config = {
     isolation: isolate;
     z-index: 1;
   }
-  .daily-text.daily-text--scripture.daily-quote--shimmer .daily-quote-inner::before {
+  .daily-text.daily-text--scripture.daily-quote--shimmer.daily-revealed .daily-quote-inner::before {
     content: '';
     position: absolute;
     top: -3px;
@@ -717,8 +732,8 @@ tailwind.config = {
     mix-blend-mode: soft-light;
     transform: translateX(-35%);
     opacity: 0;
-    -webkit-animation: dailyQuoteShimmerPass 3.15s cubic-bezier(0.28, 0, 0.18, 1) forwards;
-    animation: dailyQuoteShimmerPass 3.15s cubic-bezier(0.28, 0, 0.18, 1) forwards;
+    -webkit-animation: dailyQuoteShimmerPass 3.15s cubic-bezier(0.28, 0, 0.18, 1) 0.48s forwards;
+    animation: dailyQuoteShimmerPass 3.15s cubic-bezier(0.28, 0, 0.18, 1) 0.48s forwards;
     pointer-events: none;
   }
   @-webkit-keyframes dailyQuoteShimmerPass {
@@ -756,7 +771,15 @@ tailwind.config = {
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .daily-text.daily-text--scripture.daily-quote--shimmer .daily-quote-inner::before {
+    .daily-text.daily-text--scripture.daily-await-reveal {
+      opacity: 1 !important;
+      transform: none !important;
+      will-change: auto !important;
+    }
+    .daily-text.daily-text--scripture.daily-revealed {
+      transition: none !important;
+    }
+    .daily-text.daily-text--scripture.daily-quote--shimmer.daily-revealed .daily-quote-inner::before {
       -webkit-animation: none !important;
       animation: none !important;
       opacity: 0 !important;
@@ -1354,10 +1377,77 @@ function splitPlainIntoLeadRest(plain, pullN) {
   };
 }
 
+let dailyQuoteRevealIO = null;
+
+function disconnectDailyQuoteRevealIO() {
+  if (dailyQuoteRevealIO) {
+    dailyQuoteRevealIO.disconnect();
+    dailyQuoteRevealIO = null;
+  }
+}
+
+/**
+ * Fade/slide quote in when #dailyBanner enters the viewport; then shimmer can run (CSS).
+ */
+function bindDailyQuoteScrollReveal(quoteEl) {
+  disconnectDailyQuoteRevealIO();
+  if (!quoteEl) return;
+
+  try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      quoteEl.classList.remove('daily-await-reveal');
+      quoteEl.classList.add('daily-revealed');
+      return;
+    }
+  } catch (e) {
+    quoteEl.classList.remove('daily-await-reveal');
+    quoteEl.classList.add('daily-revealed');
+    return;
+  }
+
+  if (!quoteEl.classList.contains('daily-quote--shimmer')) {
+    quoteEl.classList.remove('daily-await-reveal');
+    quoteEl.classList.add('daily-revealed');
+    return;
+  }
+
+  const banner = document.getElementById('dailyBanner');
+  if (!banner) {
+    quoteEl.classList.remove('daily-await-reveal');
+    quoteEl.classList.add('daily-revealed');
+    return;
+  }
+
+  quoteEl.classList.remove('daily-revealed');
+  quoteEl.classList.add('daily-await-reveal');
+
+  if (typeof IntersectionObserver !== 'function') {
+    quoteEl.classList.remove('daily-await-reveal');
+    quoteEl.classList.add('daily-revealed');
+    return;
+  }
+
+  dailyQuoteRevealIO = new IntersectionObserver(
+    entries => {
+      const e0 = entries[0];
+      if (!e0 || !e0.isIntersecting) return;
+      const q = document.getElementById('dailyText');
+      if (q && q.classList.contains('daily-await-reveal')) {
+        q.classList.replace('daily-await-reveal', 'daily-revealed');
+      }
+      disconnectDailyQuoteRevealIO();
+    },
+    { root: null, rootMargin: '0px 0px -6% 0px', threshold: 0.12 }
+  );
+  dailyQuoteRevealIO.observe(banner);
+}
+
 /** Reduced-motion: same pull spans, no shimmer. */
 function mountDailyQuotePlain(el, plain, pullN) {
   el.textContent = '';
-  el.classList.remove('daily-quote--stagger', 'daily-quote--shimmer');
+  disconnectDailyQuoteRevealIO();
+  el.classList.remove('daily-quote--stagger', 'daily-quote--shimmer', 'daily-await-reveal');
+  el.classList.add('daily-revealed');
   const wordTotal = plain.split(/\s+/).filter(w => w.length).length;
   const pullNEff = pullN > 0 ? Math.min(pullN, wordTotal) : 0;
   if (pullNEff <= 0) {
@@ -1389,10 +1479,17 @@ function mountDailyQuotePlain(el, plain, pullN) {
  */
 function mountDailyQuoteStagger(el, text, payload) {
   if (!el) return;
-  el.classList.remove('daily-quote--stagger', 'daily-quote--shimmer');
+  el.classList.remove(
+    'daily-quote--stagger',
+    'daily-quote--shimmer',
+    'daily-await-reveal',
+    'daily-revealed'
+  );
   const plain = String(text || '').trim();
   if (!plain) {
     el.textContent = '';
+    disconnectDailyQuoteRevealIO();
+    el.classList.remove('daily-await-reveal', 'daily-revealed');
     return;
   }
 
@@ -1426,6 +1523,7 @@ function mountDailyQuoteStagger(el, text, payload) {
 
   el.appendChild(inner);
   el.classList.add('daily-quote--shimmer');
+  bindDailyQuoteScrollReveal(el);
   void el.offsetHeight;
 }
 
