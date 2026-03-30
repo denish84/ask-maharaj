@@ -210,6 +210,9 @@ tailwind.config = {
   }
   .chip:hover  { background: rgba(232,131,42,.2); border-color: rgba(232,131,42,.42); color: #f5a623; }
   .chip:active { transform: scale(.96); }
+  .chip.font-gujarati {
+    font-style: normal;
+  }
 
   /* Suggested questions: fixed 2×2 so chips don’t wrap 3+1 */
   #chipsWrap {
@@ -268,6 +271,13 @@ tailwind.config = {
     text-align: left;
     border-radius: 12px;
     max-width: none;
+  }
+  /* Gujarati UI: Indic label — no uppercase / wide tracking (W3C i18n guidance) */
+  #exploreDeeperSection.explore-deeper--gu .explore-deeper-toggle {
+    font-family: 'Noto Serif Gujarati', Georgia, 'Times New Roman', serif;
+    text-transform: none;
+    letter-spacing: 0.03em;
+    font-size: 0.9375rem;
   }
 
   /* ── Question textarea (#q) ──
@@ -393,7 +403,9 @@ tailwind.config = {
   }
   /* Keyboard focus — WCAG 2.4.7 Focus Visible */
   #foldBtn:focus-visible,
-  #ansCard .wa-share-btn:focus-visible {
+  #ansCard .wa-share-btn:focus-visible,
+  .explore-deeper-toggle:focus-visible,
+  .chip:focus-visible {
     outline: 2px solid rgba(245, 166, 35, 0.95);
     outline-offset: 3px;
   }
@@ -913,7 +925,7 @@ tailwind.config = {
     <div id="exploreDeeperSection" class="mt-6 pt-5" style="border-top:1px solid rgba(232,131,42,.12)">
       <button type="button" id="exploreDeeperToggle" class="explore-deeper-toggle"
               aria-expanded="false" aria-controls="exploreDeeperPanel">
-        <span id="exploreDeeperHeading">Explore Deeper</span>
+        <span id="exploreDeeperHeading" lang="en">Explore Deeper</span>
         <span class="explore-deeper-chevron" aria-hidden="true">▼</span>
       </button>
       <div id="exploreDeeperPanel" class="explore-deeper-panel" hidden style="display:none">
@@ -1385,8 +1397,14 @@ function setLang(lang) {
     });
   });
 
+  const exploreSection = document.getElementById('exploreDeeperSection');
+  if (exploreSection) exploreSection.classList.toggle('explore-deeper--gu', lang === 'gu');
+
   const exploreHeading = document.getElementById('exploreDeeperHeading');
-  if (exploreHeading) exploreHeading.textContent = s.exploreDeeperTitle;
+  if (exploreHeading) {
+    exploreHeading.textContent = s.exploreDeeperTitle;
+    exploreHeading.lang = lang === 'gu' ? 'gu' : 'en';
+  }
 
   const explorePanel = document.getElementById('exploreDeeperPanel');
   const exploreToggle = document.getElementById('exploreDeeperToggle');
