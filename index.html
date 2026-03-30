@@ -679,6 +679,16 @@ tailwind.config = {
     text-shadow: 0 0 10px rgba(245, 166, 35, 0.35);
     pointer-events: none;
   }
+  /* Pull-quote lead (first sentence or heuristic chunk); API may override via pull word count later */
+  .daily-text.daily-text--scripture .daily-word--pull {
+    font-size: 1.075em;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  #dailyBanner.daily-lang-gu .daily-text.daily-text--scripture .daily-word--pull {
+    letter-spacing: 0;
+  }
+
   /* Word stagger + gold flash — inline-block required: iOS Safari ignores transform on inline */
   .daily-text.daily-text--scripture.daily-quote--stagger .daily-word {
     display: inline-block;
@@ -1259,12 +1269,83 @@ function dailyBodyForLang(d, lang) {
   return String(d.content || '').trim();
 }
 
+/** Word count for pull-quote sizing (whitespace-split tokens). */
+function dailyWordCountInText(s) {
+  return String(s)
+    .trim()
+    .split(/\s+/)
+    .filter(w => w.length)
+    .length;
+}
+
+/**
+ * How many opening words get pull-quote treatment: first full sentence if a clear break exists
+ * (. ? ! or Gujarati danda + following text); else ~30% of words for long single-sentence quotes.
+ * Optional later: pass `payload.quote_pull_word_count` from API to override.
+ */
+function dailyPullQuoteWordCount(text, pullOverride) {
+  const o = pullOverride != null ? parseInt(String(pullOverride), 10) : NaN;
+  if (!Number.isNaN(o)) {
+    if (o <= 0) return 0;
+    return o;
+  }
+
+  const t = String(text || '').trim();
+  if (!t) return 0;
+
+  const latin = /^([\s\S]+?)([.!?])(\s+)([\s\S]+)$/u;
+  const m1 = t.match(latin);
+  if (m1 && m1[4].trim()) {
+    return dailyWordCountInText(m1[1] + m1[2]);
+  }
+
+  const danda = /^([\s\S]+?)([।॥])(\s*)([\s\S]+)$/u;
+  const m2 = t.match(danda);
+  if (m2 && m2[4].trim()) {
+    return dailyWordCountInText(m2[1] + m2[2]);
+  }
+
+  const words = t.split(/\s+/).filter(w => w.length);
+  const n = words.length;
+  if (n <= 12) return 0;
+  return Math.min(16, Math.max(6, Math.ceil(n * 0.3)));
+}
+
+/** Reduced-motion: same pull spans, no stagger. */
+function mountDailyQuotePlain(el, plain, pullN) {
+  el.textContent = '';
+  el.classList.remove('daily-quote--stagger');
+  const wordTotal = plain.split(/\s+/).filter(w => w.length).length;
+  const pullNEff = pullN > 0 ? Math.min(pullN, wordTotal) : 0;
+  if (pullNEff <= 0) {
+    el.textContent = plain;
+    return;
+  }
+  const parts = plain.split(/(\s+)/);
+  let wordIndex = 0;
+  parts.forEach(part => {
+    if (/^\s+$/.test(part)) {
+      el.appendChild(document.createTextNode(part));
+    } else if (part) {
+      if (wordIndex < pullNEff) {
+        const span = document.createElement('span');
+        span.className = 'daily-word--pull';
+        span.textContent = part;
+        el.appendChild(span);
+      } else {
+        el.appendChild(document.createTextNode(part));
+      }
+      wordIndex += 1;
+    }
+  });
+}
+
 /**
  * Daily quote: word-by-word reveal with brief gold highlight.
  * Stagger budget ~1.05s (readable pace); letter-by-letter avoided (a11y, copy, perf).
- * Plain text only when prefers-reduced-motion.
+ * Opening sentence (or heuristic lead) uses .daily-word--pull; plain + pull when reduced motion.
  */
-function mountDailyQuoteStagger(el, text) {
+function mountDailyQuoteStagger(el, text, payload) {
   if (!el) return;
   el.classList.remove('daily-quote--stagger');
   const plain = String(text || '').trim();
@@ -1272,13 +1353,20 @@ function mountDailyQuoteStagger(el, text) {
     el.textContent = '';
     return;
   }
+
+  const pullOverride =
+    payload && (payload.quote_pull_word_count != null || payload.pull_word_count != null)
+      ? payload.quote_pull_word_count ?? payload.pull_word_count
+      : undefined;
+  const pullN = dailyPullQuoteWordCount(plain, pullOverride);
+
   try {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      el.textContent = plain;
+      mountDailyQuotePlain(el, plain, pullN);
       return;
     }
   } catch (e) {
-    el.textContent = plain;
+    mountDailyQuotePlain(el, plain, pullN);
     return;
   }
 
@@ -1286,6 +1374,7 @@ function mountDailyQuoteStagger(el, text) {
   const parts = plain.split(/(\s+)/);
   const wordTokens = parts.filter((p, i) => i % 2 === 0 && p !== '');
   const n = wordTokens.length;
+  const pullNEff = pullN > 0 ? Math.min(pullN, n) : 0;
   const maxLeadSec = 1.05;
   const slotSec = n > 1 ? Math.min(0.055, maxLeadSec / (n - 1)) : 0;
   let wordIndex = 0;
@@ -1294,7 +1383,8 @@ function mountDailyQuoteStagger(el, text) {
       el.appendChild(document.createTextNode(part));
     } else if (part) {
       const span = document.createElement('span');
-      span.className = 'daily-word';
+      span.className =
+        'daily-word' + (pullNEff > 0 && wordIndex < pullNEff ? ' daily-word--pull' : '');
       span.textContent = part;
       const d = `${(wordIndex * slotSec).toFixed(3)}s`;
       span.style.webkitAnimationDelay = d;
@@ -1328,7 +1418,7 @@ function applyLoadedDailyText(lang) {
   const p = window._lastDailyPayload;
   const el = document.getElementById('dailyText');
   if (!el || !p || !p.content) return;
-  mountDailyQuoteStagger(el, dailyBodyForLang(p, lang));
+  mountDailyQuoteStagger(el, dailyBodyForLang(p, lang), p);
 }
 
 function updateDailyTitle(lang) {
@@ -2202,7 +2292,8 @@ async function loadDailyTeaching() {
     const lang = localStorage.getItem('amLang') || 'en';
     mountDailyQuoteStagger(
       document.getElementById('dailyText'),
-      dailyBodyForLang(d, lang)
+      dailyBodyForLang(d, lang),
+      d
     );
     renderDailyPills(d);
 
