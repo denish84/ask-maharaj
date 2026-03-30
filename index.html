@@ -617,7 +617,7 @@ tailwind.config = {
   #dailyBanner.daily-shuffle-mode .daily-eyebrow {
     color: rgba(160, 210, 255, 0.85);
   }
-  /* Manuscript strip: parchment (radial “light” + warm fade) + fine grain; quote only */
+  /* Manuscript strip: parchment + left scripture accent (rule + ❧), no motion */
   .daily-text.daily-text--scripture {
     position: relative;
     font-family: Georgia, 'Times New Roman', 'Noto Serif Gujarati', serif;
@@ -625,7 +625,7 @@ tailwind.config = {
     line-height: 1.65;
     color: rgba(255,255,255,0.88);
     margin: 2px 0 8px;
-    padding: 12px 14px 14px;
+    padding: 12px 14px 14px 30px;
     border: none;
     border-radius: 8px;
     font-style: italic;
@@ -647,6 +647,37 @@ tailwind.config = {
       0 0 0 1px rgba(232, 195, 150, 0.12),
       inset 0 1px 0 rgba(255, 248, 235, 0.1),
       inset 0 -1px 0 rgba(25, 14, 8, 0.32);
+  }
+  .daily-text.daily-text--scripture::before {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 13px;
+    bottom: 15px;
+    width: 1px;
+    border-radius: 1px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 214, 150, 0.9) 0%,
+      rgba(245, 166, 35, 0.5) 40%,
+      rgba(200, 125, 55, 0.28) 72%,
+      rgba(160, 95, 45, 0.12) 100%
+    );
+    box-shadow: 0 0 6px rgba(245, 166, 35, 0.1);
+    pointer-events: none;
+  }
+  /* Paints after in-flow quote so ❧ sits above rule; gutter-only so text (padding-left) stays clear */
+  .daily-text.daily-text--scripture::after {
+    content: '❧';
+    position: absolute;
+    left: 7px;
+    top: 11px;
+    font-size: 0.6875rem;
+    line-height: 1;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: rgba(245, 166, 35, 0.72);
+    text-shadow: 0 0 10px rgba(245, 166, 35, 0.35);
+    pointer-events: none;
   }
   /* Word stagger + gold flash — inline-block required: iOS Safari ignores transform on inline */
   .daily-text.daily-text--scripture.daily-quote--stagger .daily-word {
