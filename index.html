@@ -543,6 +543,11 @@ tailwind.config = {
     letter-spacing: 0.03em;
     font-weight: 600;
   }
+  /* English theme_title while UI is GU: lang=en + Latin stack (matches updateDailyTitle) */
+  #dailyBanner.daily-lang-gu .daily-eyebrow[lang="en"] {
+    font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+    letter-spacing: 0.1em;
+  }
   .daily-date-chip {
     display: block;
     width: fit-content;
@@ -1226,25 +1231,36 @@ function applyLoadedDailyText(lang) {
 function updateDailyTitle(lang) {
   const dailyTitle = document.getElementById('dailyTitle');
   if (!dailyTitle) return;
-  dailyTitle.lang = lang === 'gu' ? 'gu' : 'en';
   if (isDailyShuffleMode()) {
-    dailyTitle.textContent =
-      lang === 'gu' ? 'ચકાસણી · દર refresh નવું' : 'Test · random each refresh';
+    if (lang === 'gu') {
+      dailyTitle.textContent = 'ચકાસણી · દર refresh નવું';
+      dailyTitle.lang = 'gu';
+    } else {
+      dailyTitle.textContent = 'Test · random each refresh';
+      dailyTitle.lang = 'en';
+    }
     return;
   }
   const p = window._lastDailyPayload;
   if (p) {
     if (lang === 'gu' && p.theme_title_gu && String(p.theme_title_gu).trim()) {
       dailyTitle.textContent = String(p.theme_title_gu).trim();
+      dailyTitle.lang = 'gu';
       return;
     }
     if (p.theme_title && String(p.theme_title).trim()) {
       dailyTitle.textContent = String(p.theme_title).trim();
+      dailyTitle.lang = 'en';
       return;
     }
   }
-  dailyTitle.textContent =
-    lang === 'gu' ? 'આજનું વચનામૃત' : 'Aaj nu Vachanamrut';
+  if (lang === 'gu') {
+    dailyTitle.textContent = 'આજનું વચનામૃત';
+    dailyTitle.lang = 'gu';
+  } else {
+    dailyTitle.textContent = 'Aaj nu Vachanamrut';
+    dailyTitle.lang = 'en';
+  }
 }
 
 function updateDailyLangNote(lang) {
