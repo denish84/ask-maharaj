@@ -6,9 +6,23 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const TTS_BUCKET = 'tts-cache';
+const TTS_BUCKET = process.env.TTS_CACHE_BUCKET || 'tts-cache';
 const MONTHLY_CHAR_LIMIT = 900000;
 const MAX_TTS_CHARS = 4500;
+
+async function ensureTtsBucket() {
+  const { data: list, error: listErr } = await supabase.storage.listBuckets();
+  if (listErr) return { ok: false, error: listErr.message || 'Failed to list buckets' };
+  const exists = Array.isArray(list) && list.some(b => b && b.name === TTS_BUCKET);
+  if (exists) return { ok: true };
+
+  const { error: createErr } = await supabase.storage.createBucket(TTS_BUCKET, {
+    public: true,
+    allowedMimeTypes: ['audio/mpeg']
+  });
+  if (createErr) return { ok: false, error: createErr.message || 'Failed to create bucket' };
+  return { ok: true };
+}
 
 function getMonthKey() {
   return new Date().toISOString().slice(0, 7);
@@ -54,6 +68,11 @@ export default async function handler(req, res) {
 
     if (!process.env.GOOGLE_TTS_API_KEY) {
       return res.status(500).json({ error: 'Missing GOOGLE_TTS_API_KEY' });
+    }
+
+    const bucketReady = await ensureTtsBucket();
+    if (!bucketReady.ok) {
+      return res.status(500).json({ error: bucketReady.error || 'TTS bucket unavailable' });
     }
 
     const cacheKey = crypto.createHash('md5').update(strippedText).digest('hex');
