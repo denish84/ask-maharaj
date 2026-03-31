@@ -40,8 +40,8 @@ function getVoiceConfig(lang) {
     };
   }
   return {
-    languageCode: 'en-IN',
-    name: 'en-IN-Wavenet-D'
+    languageCode: 'en-GB',
+    name: 'en-GB-Wavenet-D'
   };
 }
 
