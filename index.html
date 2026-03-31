@@ -1094,9 +1094,6 @@ tailwind.config = {
       <p id="ttsQuotaMsg" style="display:none;text-align:center;font-size:0.875rem;color:rgba(232,220,200,0.6);font-style:italic;padding:6px 0">
         Monthly voice limit reached. You can still read the text above.
       </p>
-      <p id="ttsErrorMsg" style="display:none;text-align:center;font-size:0.875rem;color:rgba(240,160,160,0.85);font-style:italic;padding:2px 0 6px">
-        Voice is temporarily unavailable. Please try again.
-      </p>
 
       <!-- Footer row -->
       <div class="flex justify-center items-center flex-wrap gap-3 mt-5 pt-4"
@@ -2346,19 +2343,6 @@ function ttsSetBtnState(state) {
   btn.style.opacity = state === 'disabled' ? '0.45' : '1';
 }
 
-function ttsShowError(msg) {
-  const el = document.getElementById('ttsErrorMsg');
-  if (!el) return;
-  el.textContent = msg || 'Voice is temporarily unavailable. Please try again.';
-  el.style.display = 'block';
-}
-
-function ttsHideError() {
-  const el = document.getElementById('ttsErrorMsg');
-  if (!el) return;
-  el.style.display = 'none';
-}
-
 function ttsStop() {
   if (_ttsAudio) {
     _ttsAudio.pause();
@@ -2383,7 +2367,6 @@ async function toggleSpeak() {
 
   const lang = ansTextEl.lang === 'gu' ? 'gu' : 'en';
   const cacheKey = ttsSimpleHash(plainText);
-  ttsHideError();
   const quotaMsg = document.getElementById('ttsQuotaMsg');
   if (quotaMsg) quotaMsg.style.display = 'none';
 
@@ -2432,13 +2415,6 @@ async function toggleSpeak() {
 
   } catch (err) {
     console.error('[TTS]', err);
-    const langUi = localStorage.getItem('amLang') || 'en';
-    const raw = String(err?.message || '');
-    ttsShowError(
-      langUi === 'gu'
-        ? ('અવાજ ઉપલબ્ધ નથી. ' + (raw || 'થોડી વારમાં ફરી પ્રયાસ કરો.'))
-        : ('Voice unavailable. ' + (raw || 'Please try again shortly.'))
-    );
     ttsSetBtnState('idle');
   }
 }
@@ -2449,12 +2425,7 @@ function ttsPlayUrl(url) {
   _ttsAudio.preload = 'auto';
   _ttsAudio.onplay  = () => { _ttsPlaying = true;  ttsSetBtnState('playing'); };
   _ttsAudio.onended = () => { _ttsPlaying = false;  ttsSetBtnState('idle'); };
-  _ttsAudio.onerror = () => {
-    _ttsPlaying = false;
-    ttsSetBtnState('idle');
-    const langUi = localStorage.getItem('amLang') || 'en';
-    ttsShowError(langUi === 'gu' ? 'અવાજ ચલાવી શક્યા નહીં.' : 'Could not play generated audio.');
-  };
+  _ttsAudio.onerror = () => { _ttsPlaying = false;  ttsSetBtnState('idle'); };
   _ttsAudio.play().catch(() => ttsSetBtnState('idle'));
 }
 
@@ -2465,7 +2436,6 @@ foldAns = function() {
   ttsStop();
   const quotaMsg = document.getElementById('ttsQuotaMsg');
   if (quotaMsg) quotaMsg.style.display = 'none';
-  ttsHideError();
   _origFoldAns.call(this);
 };
 
@@ -2475,7 +2445,6 @@ showAns = function(text, cached, coins) {
   ttsStop();
   const quotaMsg = document.getElementById('ttsQuotaMsg');
   if (quotaMsg) quotaMsg.style.display = 'none';
-  ttsHideError();
   ttsSetBtnState('idle');
   // Show/hide speak button based on quota (re-check on each new answer)
   const speakBtn = document.getElementById('speakBtn');
