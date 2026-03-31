@@ -36,8 +36,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const textRaw = req.body?.text;
-    const lang = req.body?.lang === 'gu' ? 'gu' : 'en';
+    const body =
+      typeof req.body === 'string'
+        ? JSON.parse(req.body || '{}')
+        : (req.body || {});
+    const textRaw = body?.text;
+    const lang = body?.lang === 'gu' ? 'gu' : 'en';
     const strippedText = stripHtml(textRaw);
 
     if (!strippedText) {
@@ -81,7 +85,7 @@ export default async function handler(req, res) {
 
     // Step 3: Google Cloud TTS synth
     const voice = getVoiceConfig(lang);
-    const ttsResp = await fetch(
+    let ttsResp = await fetch(
       `https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_TTS_API_KEY}`,
       {
         method: 'POST',
@@ -96,6 +100,22 @@ export default async function handler(req, res) {
         })
       }
     );
+
+    // Fallback: if a named voice is unavailable in this project/region, retry with languageCode only.
+    if (!ttsResp.ok) {
+      ttsResp = await fetch(
+        `https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_TTS_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            input: { text: strippedText },
+            voice: { languageCode: voice.languageCode },
+            audioConfig: { audioEncoding: 'MP3' }
+          })
+        }
+      );
+    }
 
     if (!ttsResp.ok) {
       const ttsErr = await ttsResp.json().catch(() => ({}));

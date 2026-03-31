@@ -2400,7 +2400,10 @@ async function toggleSpeak() {
       return;
     }
 
-    if (!res.ok) throw new Error('TTS API error ' + res.status);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody?.error || ('TTS API error ' + res.status));
+    }
 
     const data = await res.json();
     if (!data.audioUrl) throw new Error('No audio URL returned');
