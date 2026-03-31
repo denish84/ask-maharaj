@@ -60,6 +60,26 @@ function wantsShuffle(req) {
   return params.get('shuffle') === '1' || params.get('shuffle') === 'true';
 }
 
+/**
+ * Seconds until next midnight Asia/Kolkata (IST, no DST).
+ * Aligns CDN/browser TTL with the same day boundary used for the quote seed.
+ */
+function secondsUntilNextMidnightIST(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Kolkata',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false
+  }).formatToParts(now);
+  const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute').value, 10);
+  const second = parseInt(parts.find(p => p.type === 'second').value, 10);
+  const elapsed = hour * 3600 + minute * 60 + second;
+  const left = 86400 - elapsed;
+  return Math.max(60, Math.min(left, 86400));
+}
+
 /** See supabase/daily_quotes.sql */
 async function fetchDailyQuote(seed, shuffle, today) {
   const { count, error: countErr } = await supabase
@@ -141,9 +161,10 @@ export default async function handler(req, res) {
       'private, no-store, no-cache, must-revalidate'
     );
   } else {
+    const ttl = secondsUntilNextMidnightIST();
     res.setHeader(
       'Cache-Control',
-      's-maxage=86400, stale-while-revalidate=3600'
+      `public, s-maxage=${ttl}, max-age=${ttl}, stale-while-revalidate=60`
     );
   }
 
