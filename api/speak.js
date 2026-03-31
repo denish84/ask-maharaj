@@ -8,6 +8,7 @@ const supabase = createClient(
 
 const TTS_BUCKET = 'tts-cache';
 const MONTHLY_CHAR_LIMIT = 900000;
+const MAX_TTS_CHARS = 4500;
 
 function getMonthKey() {
   return new Date().toISOString().slice(0, 7);
@@ -46,6 +47,9 @@ export default async function handler(req, res) {
 
     if (!strippedText) {
       return res.status(400).json({ error: 'Text is required' });
+    }
+    if (strippedText.length > MAX_TTS_CHARS) {
+      return res.status(413).json({ error: `TEXT_TOO_LONG: max ${MAX_TTS_CHARS} chars` });
     }
 
     if (!process.env.GOOGLE_TTS_API_KEY) {
