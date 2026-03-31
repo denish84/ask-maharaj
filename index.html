@@ -2316,10 +2316,28 @@ function renderDailyPills(d) {
 
 function formatDailyDateChip(lang) {
   const opts = { day: 'numeric', month: 'long', year: 'numeric' };
+  const locale = lang === 'gu' ? 'gu-IN' : 'en-GB';
+  const payloadDate = window._lastDailyPayload && window._lastDailyPayload.date
+    ? String(window._lastDailyPayload.date).trim()
+    : '';
+
+  // Keep the chip aligned with API day seed (IST YYYY-MM-DD) when available.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(payloadDate)) {
+    const utcDate = new Date(`${payloadDate}T00:00:00.000Z`);
+    if (!Number.isNaN(utcDate.getTime())) {
+      try {
+        return utcDate.toLocaleDateString(locale, { ...opts, timeZone: 'UTC' });
+      } catch (e) {
+        return utcDate.toLocaleDateString('en-GB', { ...opts, timeZone: 'UTC' });
+      }
+    }
+  }
+
+  // Before payload loads, still use IST clock so chip/quote boundaries match.
   try {
-    return new Date().toLocaleDateString(lang === 'gu' ? 'gu-IN' : 'en-GB', opts);
+    return new Date().toLocaleDateString(locale, { ...opts, timeZone: 'Asia/Kolkata' });
   } catch (e) {
-    return new Date().toLocaleDateString('en-GB', opts);
+    return new Date().toLocaleDateString('en-GB', { ...opts, timeZone: 'Asia/Kolkata' });
   }
 }
 
