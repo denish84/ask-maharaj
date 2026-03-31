@@ -1091,9 +1091,17 @@ tailwind.config = {
         <p id="reactionConfirm" class="text-center mt-3 text-base font-serif" style="display:none;color:#f5a623"></p>
       </div>
 
+      <p id="ttsQuotaMsg" style="display:none;text-align:center;font-size:0.875rem;color:rgba(232,220,200,0.6);font-style:italic;padding:6px 0">
+        Monthly voice limit reached. You can still read the text above.
+      </p>
+
       <!-- Footer row -->
       <div class="flex justify-center items-center flex-wrap gap-3 mt-5 pt-4"
            style="border-top:1px solid rgba(232,131,42,.18)">
+        <button type="button" id="speakBtn" class="wa-share-btn" onclick="toggleSpeak()" aria-label="Listen to answer">
+          <span id="speakBtnIcon">🔊</span>
+          <span id="speakBtnLabel">Listen</span>
+        </button>
         <button type="button" class="wa-share-btn" id="answerShareBtn" onclick="share()">
           <svg class="wa-share-wa-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -1687,6 +1695,7 @@ function setLang(lang) {
 
   syncDailyBannerChrome(lang);
   applyLoadedDailyText(lang);
+  ttsSetBtnState(_ttsPlaying ? 'playing' : 'idle');
 }
 
 function cKey(q) { return q.toLowerCase().trim().replace(/\s+/g,' ').substring(0,120); }
@@ -2287,6 +2296,155 @@ const _origHideAns = hideAns;
 hideAns = function() {
   _origHideAns.call(this);
   hideReactions();
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   TTS — Google Cloud Text-to-Speech
+═══════════════════════════════════════════════════════════════ */
+
+let _ttsAudio = null;          // current HTMLAudioElement
+let _ttsAudioCache = {};       // in-memory URL cache: answerText hash → audioUrl
+let _ttsPlaying = false;
+
+/** Strip HTML tags and normalize whitespace before sending to TTS */
+function ttsStripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return (tmp.innerText || tmp.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+/** Simple string hash for in-memory cache key (not cryptographic — just deduplication) */
+function ttsSimpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  }
+  return String(h >>> 0);
+}
+
+function ttsSetBtnState(state) {
+  // state: 'idle' | 'loading' | 'playing' | 'disabled'
+  const btn = document.getElementById('speakBtn');
+  const icon = document.getElementById('speakBtnIcon');
+  const label = document.getElementById('speakBtnLabel');
+  const lang = localStorage.getItem('amLang') || 'en';
+  if (!btn || !icon || !label) return;
+
+  const labels = {
+    idle:     { en: 'Listen',   gu: 'સાંભળો',   icon: '🔊' },
+    loading:  { en: 'Loading…', gu: 'લોડ થાય છે…', icon: '⏳' },
+    playing:  { en: 'Stop',     gu: 'બંધ કરો',   icon: '🔇' },
+    disabled: { en: 'Listen',   gu: 'સાંભળો',   icon: '🔊' },
+  };
+  const s = labels[state] || labels.idle;
+  icon.textContent = s.icon;
+  label.textContent = s[lang] || s.en;
+  btn.disabled = state === 'loading' || state === 'disabled';
+  btn.style.opacity = state === 'disabled' ? '0.45' : '1';
+}
+
+function ttsStop() {
+  if (_ttsAudio) {
+    _ttsAudio.pause();
+    _ttsAudio.currentTime = 0;
+    _ttsAudio = null;
+  }
+  _ttsPlaying = false;
+  ttsSetBtnState('idle');
+}
+
+async function toggleSpeak() {
+  // If already playing — stop
+  if (_ttsPlaying) {
+    ttsStop();
+    return;
+  }
+
+  const ansTextEl = document.getElementById('ansText');
+  if (!ansTextEl) return;
+  const plainText = ttsStripHtml(ansTextEl.innerHTML);
+  if (!plainText) return;
+
+  const lang = ansTextEl.lang === 'gu' ? 'gu' : 'en';
+  const cacheKey = ttsSimpleHash(plainText);
+
+  // iOS Safari audio unlock — must happen synchronously inside click handler
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      const ctx = new AudioContext();
+      await ctx.resume();
+    }
+  } catch (e) {}
+
+  // In-memory cache hit
+  if (_ttsAudioCache[cacheKey]) {
+    ttsPlayUrl(_ttsAudioCache[cacheKey]);
+    return;
+  }
+
+  ttsSetBtnState('loading');
+
+  try {
+    const res = await fetch('/api/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: plainText, lang })
+    });
+
+    if (res.status === 429) {
+      // Quota exceeded
+      ttsSetBtnState('disabled');
+      const quotaMsg = document.getElementById('ttsQuotaMsg');
+      if (quotaMsg) quotaMsg.style.display = 'block';
+      return;
+    }
+
+    if (!res.ok) throw new Error('TTS API error ' + res.status);
+
+    const data = await res.json();
+    if (!data.audioUrl) throw new Error('No audio URL returned');
+
+    // Store in memory cache
+    _ttsAudioCache[cacheKey] = data.audioUrl;
+    ttsPlayUrl(data.audioUrl);
+
+  } catch (err) {
+    console.error('[TTS]', err);
+    ttsSetBtnState('idle');
+  }
+}
+
+function ttsPlayUrl(url) {
+  ttsStop(); // clean up any previous
+  _ttsAudio = new Audio(url);
+  _ttsAudio.onplay  = () => { _ttsPlaying = true;  ttsSetBtnState('playing'); };
+  _ttsAudio.onended = () => { _ttsPlaying = false;  ttsSetBtnState('idle'); };
+  _ttsAudio.onerror = () => { _ttsPlaying = false;  ttsSetBtnState('idle'); };
+  _ttsAudio.play().catch(() => ttsSetBtnState('idle'));
+}
+
+/** Reset TTS state when answer card is folded */
+// Hook into existing foldAns()
+const _origFoldAns = foldAns;
+foldAns = function() {
+  ttsStop();
+  const quotaMsg = document.getElementById('ttsQuotaMsg');
+  if (quotaMsg) quotaMsg.style.display = 'none';
+  _origFoldAns.call(this);
+};
+
+/** Also reset when a new answer loads */
+const _origShowAns_tts = showAns;
+showAns = function(text, cached, coins) {
+  ttsStop();
+  const quotaMsg = document.getElementById('ttsQuotaMsg');
+  if (quotaMsg) quotaMsg.style.display = 'none';
+  ttsSetBtnState('idle');
+  // Show/hide speak button based on quota (re-check on each new answer)
+  const speakBtn = document.getElementById('speakBtn');
+  if (speakBtn) speakBtn.style.display = 'flex';
+  _origShowAns_tts.call(this, text, cached, coins);
 };
 
 function escDailyHtml(s) {
