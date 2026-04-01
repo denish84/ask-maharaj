@@ -985,12 +985,19 @@ tailwind.config = {
       <blockquote class="daily-text daily-text--scripture" id="dailyText"></blockquote>
       <p class="daily-lang-note" id="dailyLangNote" aria-hidden="true">(મૂળ અંગ્રેજી અનુવાદ)</p>
       <div class="daily-pills-row" id="dailyPills" aria-label="Source"></div>
-      <button type="button" class="wa-share-btn daily-share-btn" id="dailyShareBtn" onclick="shareDailyWisdom()">
-        <svg class="wa-share-wa-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-        <span id="dailyShareBtnLabel">Share on WhatsApp</span>
-      </button>
+      <div class="daily-share-row" style="display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="wa-share-btn daily-share-btn" id="dailyShareBtn" onclick="shareDailyWisdom()">
+          <svg class="wa-share-wa-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          <span id="dailyShareBtnLabel">Share on WhatsApp</span>
+        </button>
+
+        <button type="button" class="wa-share-btn daily-share-btn" id="dailyImageShareBtn" onclick="shareDailyAsImage()">
+          <span style="font-size:16px;line-height:1">🖼️</span>
+          <span id="dailyImageShareBtnLabel">Share as Image</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2530,6 +2537,13 @@ function syncDailyBannerChrome(lang) {
     }
     btn.classList.toggle('font-gujarati', lang === 'gu');
   }
+  const imgShareLabel = document.getElementById('dailyImageShareBtnLabel');
+  if (imgShareLabel) {
+    imgShareLabel.textContent = lang === 'gu' ? 'ઈમેજ શેર કરો' : 'Share as Image';
+    imgShareLabel.lang = lang === 'gu' ? 'gu' : 'en';
+  }
+  const imgShareBtn = document.getElementById('dailyImageShareBtn');
+  if (imgShareBtn) imgShareBtn.classList.toggle('font-gujarati', lang === 'gu');
   const ansShareBtn = document.getElementById('answerShareBtn');
   const ansShareLabel = document.getElementById('answerShareBtnLabel');
   if (ansShareLabel) {
@@ -2570,6 +2584,329 @@ function shareDailyWisdom() {
     ' https://ask-maharaj.vercel.app';
   const url = 'whatsapp://send?text=' + encodeURIComponent(t);
   window.open(url, '_blank');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DAILY QUOTE IMAGE CARD — Canvas API
+═══════════════════════════════════════════════════════════════ */
+
+async function shareDailyAsImage() {
+  const p = window._lastDailyPayload;
+  if (!p || !p.content) return;
+
+  const lang = localStorage.getItem('amLang') || 'en';
+  const btn = document.getElementById('dailyImageShareBtn');
+  const origLabel = document.getElementById('dailyImageShareBtnLabel');
+
+  // Loading state
+  if (origLabel) origLabel.textContent = lang === 'gu' ? 'બનાવે છે...' : 'Creating...';
+  if (btn) btn.disabled = true;
+
+  try {
+    const blob = await buildDailyImageCard(p, lang);
+    const file = new File([blob], 'ask-maharaj-daily.png', { type: 'image/png' });
+    const url = URL.createObjectURL(blob);
+
+    // Try Web Share API first (mobile — shares image directly to WhatsApp)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Ask Maharaj — Daily Wisdom',
+          text: lang === 'gu' ? 'આજનું વચનામૃત 🙏' : 'Daily Vachanamrut 🙏'
+        });
+        URL.revokeObjectURL(url);
+        return;
+      } catch (shareErr) {
+        // User cancelled or share failed — fall through to download
+        if (shareErr.name === 'AbortError') {
+          URL.revokeObjectURL(url);
+          return;
+        }
+      }
+    }
+
+    // Fallback — download image
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ask-maharaj-daily.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  } catch (err) {
+    console.error('[ImageCard]', err);
+  } finally {
+    if (origLabel) {
+      origLabel.textContent = lang === 'gu' ? 'ઈમેજ શેર કરો' : 'Share as Image';
+    }
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function buildDailyImageCard(payload, lang) {
+  // ── Canvas setup ──
+  const W = 1080, H = 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // ── Background: deep dark base ──
+  ctx.fillStyle = '#0f0600';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Saffron-gold radial glow (top center) ──
+  const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, H * 0.72);
+  glow.addColorStop(0, 'rgba(232,131,42,0.28)');
+  glow.addColorStop(0.5, 'rgba(184,90,18,0.12)');
+  glow.addColorStop(1, 'rgba(15,6,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Bottom warm glow ──
+  const glow2 = ctx.createRadialGradient(W / 2, H, 0, W / 2, H, H * 0.6);
+  glow2.addColorStop(0, 'rgba(139,60,10,0.18)');
+  glow2.addColorStop(1, 'rgba(15,6,0,0)');
+  ctx.fillStyle = glow2;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Mandala watermark (SVG drawn to canvas) ──
+  await drawMandalaWatermark(ctx, W, H);
+
+  // ── Outer border ──
+  const borderPad = 32;
+  ctx.strokeStyle = 'rgba(232,131,42,0.35)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, borderPad, borderPad, W - borderPad * 2, H - borderPad * 2, 24);
+  ctx.stroke();
+
+  // ── Inner border ──
+  const innerPad = 42;
+  ctx.strokeStyle = 'rgba(232,131,42,0.15)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, innerPad, innerPad, W - innerPad * 2, H - innerPad * 2, 18);
+  ctx.stroke();
+
+  // ── Top gold line ──
+  const grad = ctx.createLinearGradient(120, 0, W - 120, 0);
+  grad.addColorStop(0, 'transparent');
+  grad.addColorStop(0.2, 'rgba(232,131,42,0.88)');
+  grad.addColorStop(0.5, 'rgba(245,166,35,0.7)');
+  grad.addColorStop(0.8, 'rgba(232,131,42,0.88)');
+  grad.addColorStop(1, 'transparent');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(120, 88);
+  ctx.lineTo(W - 120, 88);
+  ctx.stroke();
+
+  // ── Om symbol ──
+  ctx.font = '52px serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(253,246,236,0.88)';
+  ctx.shadowColor = 'rgba(232,131,42,0.6)';
+  ctx.shadowBlur = 18;
+  ctx.fillText('ॐ', W / 2, 168);
+  ctx.shadowBlur = 0;
+
+  // ── "Ask Maharaj" branding ──
+  ctx.font = 'bold 38px Georgia, serif';
+  ctx.textAlign = 'center';
+  const brandGrad = ctx.createLinearGradient(W / 2 - 180, 0, W / 2 + 180, 0);
+  brandGrad.addColorStop(0, '#fde68a');
+  brandGrad.addColorStop(0.5, '#f5a623');
+  brandGrad.addColorStop(1, '#e8832a');
+  ctx.fillStyle = brandGrad;
+  ctx.shadowColor = 'rgba(232,131,42,0.4)';
+  ctx.shadowBlur = 12;
+  ctx.fillText('Ask Maharaj', W / 2, 226);
+  ctx.shadowBlur = 0;
+
+  // ── Divider ornament ──
+  ctx.font = '20px Georgia, serif';
+  ctx.fillStyle = 'rgba(232,131,42,0.55)';
+  ctx.fillText('✦', W / 2, 268);
+
+  // ── Date chip ──
+  const dateStr = formatDailyDateChip(lang);
+  ctx.font = '24px "Crimson Pro", Georgia, serif';
+  ctx.fillStyle = 'rgba(232,220,200,0.65)';
+  ctx.fillText(dateStr, W / 2, 312);
+
+  // ── Quote text ──
+  const quoteText = dailyBodyForLang(payload, lang);
+  const quoteFont = lang === 'gu'
+    ? '32px "Noto Serif Gujarati", Georgia, serif'
+    : '34px "Crimson Pro", Georgia, serif';
+
+  ctx.font = quoteFont;
+  ctx.fillStyle = 'rgba(253,246,236,0.92)';
+  ctx.textAlign = 'center';
+
+  // Left accent line for quote
+  ctx.strokeStyle = 'rgba(245,166,35,0.55)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(80, 370);
+  ctx.lineTo(80, 660);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(W - 80, 370);
+  ctx.lineTo(W - 80, 660);
+  ctx.stroke();
+
+  // Wrap and draw quote text
+  const maxWidth = W - 220;
+  const lineHeight = lang === 'gu' ? 56 : 52;
+  const lines = wrapCanvasText(ctx, quoteText, maxWidth);
+  const totalTextH = lines.length * lineHeight;
+  let textStartY = 370 + (290 - totalTextH) / 2 + lineHeight;
+  if (textStartY < 390) textStartY = 390;
+
+  ctx.font = quoteFont;
+  ctx.fillStyle = 'rgba(253,246,236,0.92)';
+  lines.forEach((line, i) => {
+    ctx.fillText(line, W / 2, textStartY + i * lineHeight);
+  });
+
+  // ── Opening quote mark ──
+  ctx.font = 'bold 80px Georgia, serif';
+  ctx.fillStyle = 'rgba(232,131,42,0.22)';
+  ctx.textAlign = 'left';
+  ctx.fillText('\u201C', 90, 400);
+  ctx.textAlign = 'right';
+  ctx.fillText('\u201D', W - 90, textStartY + lines.length * lineHeight - 10);
+
+  // ── Citation pill ──
+  const cite = payload.citation
+    ? String(payload.citation).trim()
+    : payload.vachanamrut_number
+    ? String(payload.vachanamrut_number).trim()
+    : '';
+
+  if (cite) {
+    const citeY = 700;
+    ctx.textAlign = 'center';
+    ctx.font = 'italic 26px "Crimson Pro", Georgia, serif';
+    const citeW = ctx.measureText(cite).width + 48;
+    const citeX = W / 2 - citeW / 2;
+
+    // Pill background
+    ctx.fillStyle = 'rgba(245,166,35,0.1)';
+    roundRect(ctx, citeX, citeY - 28, citeW, 42, 21);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(245,166,35,0.3)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, citeX, citeY - 28, citeW, 42, 21);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(253,246,236,0.85)';
+    ctx.fillText(cite, W / 2, citeY);
+  }
+
+  // ── Bottom divider ──
+  const divGrad = ctx.createLinearGradient(120, 0, W - 120, 0);
+  divGrad.addColorStop(0, 'transparent');
+  divGrad.addColorStop(0.3, 'rgba(232,131,42,0.4)');
+  divGrad.addColorStop(0.7, 'rgba(232,131,42,0.4)');
+  divGrad.addColorStop(1, 'transparent');
+  ctx.strokeStyle = divGrad;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(120, 780);
+  ctx.lineTo(W - 120, 780);
+  ctx.stroke();
+
+  // ── Jai Swaminarayan footer ──
+  ctx.font = 'bold 30px "Noto Serif Gujarati", Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(245,166,35,0.88)';
+  ctx.shadowColor = 'rgba(232,131,42,0.4)';
+  ctx.shadowBlur = 10;
+  ctx.fillText('Jai Swaminarayan 🙏', W / 2, 840);
+  ctx.shadowBlur = 0;
+
+  // ── URL ──
+  ctx.font = '22px "Crimson Pro", Georgia, serif';
+  ctx.fillStyle = 'rgba(232,220,200,0.42)';
+  ctx.fillText('ask-maharaj.vercel.app', W / 2, 890);
+
+  // ── Bottom gold line ──
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(120, W - 88);
+  ctx.lineTo(W - 120, H - 88);
+  ctx.stroke();
+
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+
+/** Wrap text to fit maxWidth, returns array of lines */
+function wrapCanvasText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  words.forEach(word => {
+    const test = current ? current + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  });
+  if (current) lines.push(current);
+  return lines;
+}
+
+/** Draw rounded rectangle path */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+/** Draw mandala as faint SVG watermark via Image element */
+async function drawMandalaWatermark(ctx, W, H) {
+  return new Promise(resolve => {
+    const svgStr = `<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" fill="none" width="${W}" height="${H}">
+      <circle cx="200" cy="200" r="192" stroke="rgba(253,246,236,0.06)" stroke-width="0.5"/>
+      <circle cx="200" cy="200" r="162" stroke="rgba(253,246,236,0.06)" stroke-width="0.42"/>
+      <circle cx="200" cy="200" r="132" stroke="rgba(253,246,236,0.06)" stroke-width="0.35"/>
+      <circle cx="200" cy="200" r="102" stroke="rgba(253,246,236,0.06)" stroke-width="0.3"/>
+      <circle cx="200" cy="200" r="72"  stroke="rgba(253,246,236,0.06)" stroke-width="0.25"/>
+      <g stroke="rgba(253,246,236,0.05)" stroke-width="0.28">
+        <line x1="200" y1="8"   x2="200" y2="392"/>
+        <line x1="8"   y1="200" x2="392" y2="200"/>
+        <line x1="57"  y1="57"  x2="343" y2="343"/>
+        <line x1="343" y1="57"  x2="57"  y2="343"/>
+      </g>
+    </svg>`;
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(img, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = url;
+  });
 }
 
 async function loadDailyTeaching() {
