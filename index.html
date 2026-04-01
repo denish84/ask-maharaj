@@ -2603,9 +2603,10 @@ async function shareDailyAsImage() {
   if (btn) btn.disabled = true;
 
   try {
-    const blob = await buildDailyImageCard(p, lang);
-    const file = new File([blob], 'ask-maharaj-daily.png', { type: 'image/png' });
-    const url = URL.createObjectURL(blob);
+    let blob = await buildDailyImageCard(p, lang, 'image/png');
+    let file = new File([blob], 'ask-maharaj-daily.png', { type: 'image/png' });
+    let downloadName = 'ask-maharaj-daily.png';
+    let retryAsJpeg = false;
 
     // Try Web Share API first (mobile — shares image directly to WhatsApp)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -2615,28 +2616,64 @@ async function shareDailyAsImage() {
           title: 'Ask Maharaj — Daily Wisdom',
           text: lang === 'gu' ? 'આજનું વચનામૃત 🙏' : 'Daily Vachanamrut 🙏'
         });
-        URL.revokeObjectURL(url);
         return;
       } catch (shareErr) {
-        // User cancelled or share failed — fall through to download
         if (shareErr.name === 'AbortError') {
-          URL.revokeObjectURL(url);
           return;
         }
+        retryAsJpeg = true;
       }
+    } else {
+      retryAsJpeg = true;
+    }
+
+    if (retryAsJpeg) {
+      try {
+        const jpegBlob = await buildDailyImageCard(p, lang, 'image/jpeg');
+        const jpegFile = new File([jpegBlob], 'ask-maharaj-daily.jpg', { type: 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [jpegFile] })) {
+          try {
+            await navigator.share({
+              files: [jpegFile],
+              title: 'Ask Maharaj — Daily Wisdom',
+              text: lang === 'gu' ? 'આજનું વચનામૃત 🙏' : 'Daily Vachanamrut 🙏'
+            });
+            return;
+          } catch (shareErr2) {
+            if (shareErr2.name === 'AbortError') {
+              return;
+            }
+          }
+        }
+        blob = jpegBlob;
+        file = jpegFile;
+        downloadName = 'ask-maharaj-daily.jpg';
+      } catch (e) {}
     }
 
     // Fallback — download image
+    const url = URL.createObjectURL(file);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ask-maharaj-daily.png';
+    a.download = downloadName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
 
   } catch (err) {
-    console.error('[ImageCard]', err);
+    // Silent fallback: if any share/render step fails, try to download PNG.
+    try {
+      const blob = await buildDailyImageCard(p, lang, 'image/png');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ask-maharaj-daily.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {}
   } finally {
     if (origLabel) {
       origLabel.textContent = lang === 'gu' ? 'ઈમેજ શેર કરો' : 'Share as Image';
@@ -2645,7 +2682,7 @@ async function shareDailyAsImage() {
   }
 }
 
-async function buildDailyImageCard(payload, lang) {
+async function buildDailyImageCard(payload, lang, mimeType) {
   // ── Canvas setup ──
   const W = 1080, H = 1080;
   const canvas = document.createElement('canvas');
@@ -2842,7 +2879,17 @@ async function buildDailyImageCard(payload, lang) {
   ctx.lineTo(W - 120, H - 88);
   ctx.stroke();
 
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const outMime = mimeType || 'image/png';
+  return new Promise((resolve, reject) => {
+    const quality = outMime === 'image/jpeg' ? 0.92 : undefined;
+    canvas.toBlob(blob => {
+      if (!blob) {
+        reject(new Error('Canvas export failed'));
+        return;
+      }
+      resolve(blob);
+    }, outMime, quality);
+  });
 }
 
 /** Wrap text to fit maxWidth, returns array of lines */
